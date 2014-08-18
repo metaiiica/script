@@ -1,0 +1,75 @@
+Scriptaddons for PAC Man
+
+Please Note: The Commits can not pushed to gerit while is not merged by the Homeauthor or is specially
+
+Use: Put both *.sh and Folder 11 and App2SD to Root of your PAC-Folder, then edit Path inside the *.sh Scripts
+
+If you use App2 SD and you will use patches for the devices and you get
+
+it contains following Scripts (all depends another)
+
+Frameworks/Base
+0001-Base-1-2-Implement-App-circle-sidebar.patch
+0001-Base-2-2-App-circle-sidebar-add-support-floating-win.patch
+0001-Base-App-Circle-sidebar-add-support-Samsung-multiwin.patch
+0001-Base-App-Circle-Bar-Toggle-1-2.patch
+0001-Base-Omni-Floating-window-with-multitasking.patch
+0001-Base-App-Circle-Sidebar-Support-for-Configurable-Tri.patch
+
+Settings
+0001-Settings-Implement-App-circle-sidebar.patch
+0001-Settings-App-Circle-Bar-Toggle-2-2.patch
+0001-Settings-App-Circle-Sidebar-Support-for-Configurable.patch
+0001-Settings-Driving-Mode.patch
+
+App to SD Support:
+
+jflte
+0001-Jflte.patch
+
+If you use D2LTE DEVICE, USE THIS AND COMMENT OUT
+0001-D2lte-Enable-app2sd.patch
+
+
+If you use P51XX DEVICE, USE THIS AND COMMENT OUT
+0001-P51XX-Enable-app2sd.patch
+
+
+If you use P31XX DEVICE, USE THIS AND COMMENT OUT
+0001-P31XX-Enable-app2sd.patch
+
+
+If you use Galaxy S2 DEVICE, USE THIS AND COMMENT OUT
+0001-Galaxy2-common-Enable-app2sd.patch
+
+
+If you use I9500 DEVICE, USE THIS AND COMMENT OUT
+0001-I9500-Enable-app2sd.patch
+
+If you use a other Device, you must write self 
+1. go to your Devicetree (such as device/samsung/jflte)
+2. Open here BoardConfig.mk and add in a new line:
+# External apps on SD
+TARGET_EXTERNAL_APPS = sdcard1
+3. then open storage_list.xml in common-overlay/frameworks/base/core/res/res/xml or overlay/frameworks/base/core/res/res/xml
+and in Part <storage android:mountPoint="/storage/sdcard1" add android:externalApps="true" /> (dont forget removing /> after android:removable="true")
+save it and make a patch following 
+    git add -A && git commit -m "git commit -m "YOURDEVICE Enable-app2sd" && git format-patch -1 HEAD
+
+Send it to digixp2006@gmail.com i will add it to my tree
+
+MAIN
+
+frameworks/native
+0001-Native-App2SD-Calculate-application-sizes-correctly.patch
+
+system/vold
+0001-Vold-App2SD.patch
+
+frameworks/base
+0001-Base-App2SD-changes-for-moving-applications-to-externa.patch
+0001-Base-App2SD-Add-class-for-changing-app-moving-setting.patch
+
+packages/apps/Settings
+0001-Settings-App2SD1-Add-app-moving-setting.patch
+0001-Settings-App2SD-Enable-moving-applications-to-an-external-volume.patch
