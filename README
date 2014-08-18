@@ -27,26 +27,25 @@ App to SD Support:
 jflte
 0001-Jflte.patch
 
-If you use D2LTE DEVICE, USE THIS AND COMMENT OUT
+D2LTE
 0001-D2lte-Enable-app2sd.patch
 
 
-If you use P51XX DEVICE, USE THIS AND COMMENT OUT
+P51XX
 0001-P51XX-Enable-app2sd.patch
 
 
-If you use P31XX DEVICE, USE THIS AND COMMENT OUT
+P31XX
 0001-P31XX-Enable-app2sd.patch
 
 
-If you use Galaxy S2 DEVICE, USE THIS AND COMMENT OUT
+Galaxy S2
 0001-Galaxy2-common-Enable-app2sd.patch
 
 
-If you use I9500 DEVICE, USE THIS AND COMMENT OUT
+I9500
 0001-I9500-Enable-app2sd.patch
 
-If you use a other Device, you must write self 
 1. go to your Devicetree (such as device/samsung/jflte)
 2. Open here BoardConfig.mk and add in a new line:
 # External apps on SD
