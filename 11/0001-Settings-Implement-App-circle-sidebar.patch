@@ -1,0 +1,780 @@
+From 8ce8785143092da87699c170705ac1c453cc5f02 Mon Sep 17 00:00:00 2001
+From: Yanuar Harry <ai.the.smarties.physics@gmail.com>
+Date: Sun, 17 Aug 2014 11:58:29 +0200
+Subject: [PATCH] Settings: Implement App circle sidebar
+
+Change-Id: I6b723cff23e88d1890c7676bd0ea4e4c8acd99b2
+---
+ res/drawable-hdpi/ic_settings__appcirclebar.png    |  Bin 0 -> 2538 bytes
+ res/drawable-mdpi/ic_settings__appcirclebar.png    |  Bin 0 -> 1911 bytes
+ res/drawable-xhdpi/ic_settings__appcirclebar.png   |  Bin 0 -> 2273 bytes
+ res/drawable-xxhdpi/ic_settings__appcirclebar.png  |  Bin 0 -> 6181 bytes
+ res/values/pac_strings.xml                         |    6 +
+ res/xml/app_circle_sidebar.xml                     |   36 +++
+ res/xml/pac_ui_settings.xml                        |    7 +
+ res/xml/system_ui_settings.xml                     |    2 +-
+ .../mahdi/lsn/AppMultiSelectListPreference.java    |  266 ++++++++++++++++++++
+ .../settings/mahdi/omni/AppCircleSidebar.java      |  101 ++++++++
+ 10 files changed, 417 insertions(+), 1 deletion(-)
+ create mode 100644 res/drawable-hdpi/ic_settings__appcirclebar.png
+ create mode 100644 res/drawable-mdpi/ic_settings__appcirclebar.png
+ create mode 100644 res/drawable-xhdpi/ic_settings__appcirclebar.png
+ create mode 100644 res/drawable-xxhdpi/ic_settings__appcirclebar.png
+ create mode 100644 res/xml/app_circle_sidebar.xml
+ create mode 100644 src/com/android/settings/mahdi/lsn/AppMultiSelectListPreference.java
+ create mode 100644 src/com/android/settings/mahdi/omni/AppCircleSidebar.java
+
+diff --git a/res/drawable-hdpi/ic_settings__appcirclebar.png b/res/drawable-hdpi/ic_settings__appcirclebar.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..b4e57c3ab55f8b9162fa3a82e179ae8154c86fb6
+GIT binary patch
+literal 2538
+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
+A3jhEB
+
+literal 0
+HcmV?d00001
+
+diff --git a/res/drawable-mdpi/ic_settings__appcirclebar.png b/res/drawable-mdpi/ic_settings__appcirclebar.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..2890fa2823f71b4f88926b428143104717feed71
+GIT binary patch
+literal 1911
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/res/drawable-xhdpi/ic_settings__appcirclebar.png b/res/drawable-xhdpi/ic_settings__appcirclebar.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..2ecb7e5613e54189460652abf986c9452ec7b96a
+GIT binary patch
+literal 2273
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/res/drawable-xxhdpi/ic_settings__appcirclebar.png b/res/drawable-xxhdpi/ic_settings__appcirclebar.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..c0bd5fd6f015b924e9ba43bb892dea27aea7928b
+GIT binary patch
+literal 6181
+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
+A2><{9
+
+literal 0
+HcmV?d00001
+
+diff --git a/res/values/pac_strings.xml b/res/values/pac_strings.xml
+index b642121..50b81cd 100644
+--- a/res/values/pac_strings.xml
++++ b/res/values/pac_strings.xml
+@@ -659,4 +659,10 @@
+ 
+     <!-- You better not add new strings here, organize them alphabetically! -->
+ 
++    <!-- App Circle Sidebar -->
++    <string name="app_circle_bar_title">App Circle Sidebar</string>
++    <string name="app_circle_bar_summary">Show app launcher after touching right side of screen</string>
++    <string name="app_circle_bar_included_apps_title">Included apps</string>
++    <string name="app_circle_bar_included_apps_summary">Apps will show in app circle sidebar</string>
++
+ </resources>
+diff --git a/res/xml/app_circle_sidebar.xml b/res/xml/app_circle_sidebar.xml
+new file mode 100644
+index 0000000..9d6c3d7
+--- /dev/null
++++ b/res/xml/app_circle_sidebar.xml
+@@ -0,0 +1,36 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--  Copyright (C) 2013 The OmniROM Project
++      Modified by 2014 - The Schism Project
++
++  This program is free software: you can redistribute it and/or modify
++  it under the terms of the GNU General Public License as published by
++  the Free Software Foundation, either version 2 of the License, or
++  (at your option) any later version.
++
++  This program is distributed in the hope that it will be useful,
++  but WITHOUT ANY WARRANTY; without even the implied warranty of
++  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++  GNU General Public License for more details.
++
++  You should have received a copy of the GNU General Public License
++  along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ -->
++
++<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
++        android:key="app_circle_sidebar"
++        android:title="@string/app_circle_bar_title"
++        xmlns:settings="http://schemas.android.com/apk/res/com.android.settings">
++
++    <com.android.settings.cyanogenmod.SystemSettingCheckBoxPreference
++        android:key="enable_app_circle_bar"
++        android:title="@string/app_circle_bar_title"
++        android:summary="@string/app_circle_bar_summary" />
++
++    <com.android.settings.mahdi.lsn.AppMultiSelectListPreference
++        android:key="app_circle_bar_included_apps"
++        android:persistent="false"
++        android:title="@string/app_circle_bar_included_apps_title"
++        android:summary="@string/app_circle_bar_included_apps_summary"
++        android:dependency="enable_app_circle_bar" />
++
++</PreferenceScreen>
+diff --git a/res/xml/pac_ui_settings.xml b/res/xml/pac_ui_settings.xml
+index d65e8f7..d668f68 100644
+--- a/res/xml/pac_ui_settings.xml
++++ b/res/xml/pac_ui_settings.xml
+@@ -59,5 +59,12 @@
+         android:title="@string/wakelock_blocker"
+         android:summary="@string/wakelock_blocker_header_summary"
+         android:icon="@drawable/ic_wakelock_blocker" />
++
++    <PreferenceScreen
++        android:id="@+id/app_circle_sidebar"
++        android:icon="@drawable/ic_settings__appcirclebar"
++        android:title="@string/app_circle_bar_title"
++        android:fragment="com.android.settings.mahdi.omni.AppCircleSidebar" >
++    </PreferenceScreen>
+ 
+ </PreferenceScreen>
+diff --git a/res/xml/system_ui_settings.xml b/res/xml/system_ui_settings.xml
+index 0099f80..0620f79 100644
+--- a/res/xml/system_ui_settings.xml
++++ b/res/xml/system_ui_settings.xml
+@@ -24,4 +24,4 @@
+         android:title="@string/gestures_settings_header_title">
+     </Preference>
+ 
+-</PreferenceScreen>
++</PreferenceScreen>
+\ No newline at end of file
+diff --git a/src/com/android/settings/mahdi/lsn/AppMultiSelectListPreference.java b/src/com/android/settings/mahdi/lsn/AppMultiSelectListPreference.java
+new file mode 100644
+index 0000000..a7ef5de
+--- /dev/null
++++ b/src/com/android/settings/mahdi/lsn/AppMultiSelectListPreference.java
+@@ -0,0 +1,266 @@
++/*
++* Copyright (C) 2013 The ChameleonOS Project
++*
++* Licensed under the Apache License, Version 2.0 (the "License");
++* you may not use this file except in compliance with the License.
++* You may obtain a copy of the License at
++*
++* http://www.apache.org/licenses/LICENSE-2.0
++*
++* Unless required by applicable law or agreed to in writing, software
++* distributed under the License is distributed on an "AS IS" BASIS,
++* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++* See the License for the specific language governing permissions and
++* limitations under the License.
++*/
++package com.android.settings.mahdi.lsn;
++
++import android.app.AlertDialog;
++import android.content.Context;
++import android.content.pm.ApplicationInfo;
++import android.content.pm.PackageManager;
++import android.content.res.TypedArray;
++import android.os.Bundle;
++import android.preference.DialogPreference;
++import android.util.AttributeSet;
++import android.view.LayoutInflater;
++import android.view.View;
++import android.view.ViewGroup;
++import android.widget.AdapterView;
++import android.widget.ArrayAdapter;
++import android.widget.CheckBox;
++import android.widget.ImageView;
++import android.widget.ListView;
++import android.widget.TextView;
++import com.android.settings.R;
++
++import java.text.Collator;
++import java.util.ArrayList;
++import java.util.Collections;
++import java.util.Comparator;
++import java.util.HashSet;
++import java.util.List;
++import java.util.Set;
++
++/**
++* A preference that lists installed applications, with icons, as a multi choice list.
++*
++* @author Clark Scheff
++*/
++public class AppMultiSelectListPreference extends DialogPreference {
++    private final List<MyApplicationInfo> mPackageInfoList = new ArrayList<MyApplicationInfo>();
++    private CharSequence[] mEntries;
++    private CharSequence[] mEntryValues;
++    private Set<String> mValues = new HashSet<String>();
++    private Set<String> mNewValues = new HashSet<String>();
++    private boolean mPreferenceChanged;
++
++    public AppMultiSelectListPreference(Context context) {
++        this(context, null);
++    }
++
++    public AppMultiSelectListPreference(Context context, AttributeSet attrs) {
++        super(context, attrs);
++        List<ApplicationInfo> pkgs = context.getPackageManager()
++                .getInstalledApplications(PackageManager.PERMISSION_GRANTED);
++        for (int i=0; i<pkgs.size(); i++) {
++            ApplicationInfo ai = pkgs.get(i);
++            if(context.getPackageManager().getLaunchIntentForPackage(ai.packageName) == null) {
++                continue;
++            }
++            MyApplicationInfo info = new MyApplicationInfo();
++            info.info = ai;
++            info.label = info.info.loadLabel(getContext().getPackageManager()).toString();
++            mPackageInfoList.add(info);
++        }
++
++        List<CharSequence> entries = new ArrayList<CharSequence>();
++        List<CharSequence> entryValues = new ArrayList<CharSequence>();
++        Collections.sort(mPackageInfoList, sDisplayNameComparator);
++        for (MyApplicationInfo info : mPackageInfoList) {
++            entries.add(info.label);
++            entryValues.add(info.info.packageName);
++        }
++        MyApplicationInfo info = new MyApplicationInfo();
++        mEntries = new CharSequence[entries.size()];
++        mEntryValues = new CharSequence[entries.size()];
++        entries.toArray(mEntries);
++        entryValues.toArray(mEntryValues);
++    }
++
++    /**
++* Sets the value of the key. This should contain entries in
++* {@link #getEntryValues()}.
++*
++* @param values The values to set for the key.
++*/
++    public void setValues(Set<String> values) {
++        mValues.clear();
++        mValues.addAll(values);
++
++        persistStringSet(values);
++    }
++
++    public void setClearValues() {
++        mValues.clear();
++    }
++
++    /**
++* Retrieves the current value of the key.
++*/
++    public Set<String> getValues() {
++        return mValues;
++    }
++
++    /**
++* Returns the index of the given value (in the entry values array).
++*
++* @param value The value whose index should be returned.
++* @return The index of the value, or -1 if not found.
++*/
++    public int findIndexOfValue(String value) {
++        if (value != null && mEntryValues != null) {
++            for (int i = mEntryValues.length - 1; i >= 0; i--) {
++                if (mEntryValues[i].equals(value)) {
++                    return i;
++                }
++            }
++        }
++        return -1;
++    }
++
++    @Override
++    protected void onPrepareDialogBuilder(AlertDialog.Builder builder) {
++        super.onPrepareDialogBuilder(builder);
++        builder.setAdapter(new AppListAdapter(getContext()), null);
++        mNewValues.clear();
++        mNewValues.addAll(mValues);
++    }
++
++    @Override
++    protected void showDialog(Bundle state) {
++        super.showDialog(state);
++        final AlertDialog dialog = (AlertDialog) getDialog();
++        final ListView listView = dialog.getListView();
++        listView.setItemsCanFocus(false);
++        listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
++        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
++            @Override
++            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
++                final AppViewHolder holder = (AppViewHolder) view.getTag();
++                final boolean isChecked = !holder.checkBox.isChecked();
++                holder.checkBox.setChecked(isChecked);
++                if (isChecked) {
++                    mPreferenceChanged |= mNewValues.add(mEntryValues[position].toString());
++                } else {
++                    mPreferenceChanged |= mNewValues.remove(mEntryValues[position].toString());
++                }
++            }
++        });
++    }
++
++    @Override
++    protected void onDialogClosed(boolean positiveResult) {
++        super.onDialogClosed(positiveResult);
++
++        if (positiveResult && mPreferenceChanged) {
++            final Set<String> values = mNewValues;
++            if (callChangeListener(values)) {
++                setValues(values);
++            }
++        }
++        mPreferenceChanged = false;
++    }
++
++    @Override
++    protected Object onGetDefaultValue(TypedArray a, int index) {
++        final CharSequence[] defaultValues = a.getTextArray(index);
++        final int valueCount = defaultValues.length;
++        final Set<String> result = new HashSet<String>();
++
++        for (int i = 0; i < valueCount; i++) {
++            result.add(defaultValues[i].toString());
++        }
++
++        return result;
++    }
++
++    @Override
++    protected void onSetInitialValue(boolean restoreValue, Object defaultValue) {
++        setValues(restoreValue ? getPersistedStringSet(mValues) : (Set<String>) defaultValue);
++    }
++
++    class MyApplicationInfo {
++        ApplicationInfo info;
++        CharSequence label;
++    }
++
++    public class AppListAdapter extends ArrayAdapter<MyApplicationInfo> {
++        private final LayoutInflater mInflater;
++
++        public AppListAdapter(Context context) {
++            super(context, 0);
++            mInflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
++            addAll(mPackageInfoList);
++        }
++
++        @Override
++        public View getView(int position, View convertView, ViewGroup parent) {
++            // A ViewHolder keeps references to children views to avoid unnecessary calls
++            // to findViewById() on each row.
++            AppViewHolder holder = AppViewHolder.createOrRecycle(mInflater, convertView);
++            convertView = holder.rootView;
++            MyApplicationInfo info = getItem(position);
++            holder.appName.setText(info.label);
++            if (info.info != null) {
++                holder.appIcon.setImageDrawable(info.info.loadIcon(getContext().getPackageManager()));
++            } else {
++                holder.appIcon.setImageDrawable(null);
++            }
++            holder.checkBox.setChecked(mNewValues.contains(mEntryValues[position].toString()));
++            return convertView;
++        }
++
++        @Override
++        public MyApplicationInfo getItem(int position) {
++            return mPackageInfoList.get(position);
++        }
++    }
++
++    public static class AppViewHolder {
++        public View rootView;
++        public TextView appName;
++        public ImageView appIcon;
++        public CheckBox checkBox;
++
++        public static AppViewHolder createOrRecycle(LayoutInflater inflater, View convertView) {
++            if (convertView == null) {
++                convertView = inflater.inflate(R.layout.ln_excluded_app_item, null);
++
++                // Creates a ViewHolder and store references to the two children views
++                // we want to bind data to.
++                AppViewHolder holder = new AppViewHolder();
++                holder.rootView = convertView;
++                holder.appName = (TextView) convertView.findViewById(R.id.app_name);
++                holder.appIcon = (ImageView) convertView.findViewById(R.id.app_icon);
++                holder.checkBox = (CheckBox) convertView.findViewById(android.R.id.checkbox);
++                convertView.setTag(holder);
++                return holder;
++            } else {
++                // Get the ViewHolder back to get fast access to the TextView
++                // and the ImageView.
++                return (AppViewHolder)convertView.getTag();
++            }
++        }
++    }
++
++    private final static Comparator<MyApplicationInfo> sDisplayNameComparator
++            = new Comparator<MyApplicationInfo>() {
++        public final int
++        compare(MyApplicationInfo a, MyApplicationInfo b) {
++            return collator.compare(a.label, b.label);
++        }
++
++        private final Collator collator = Collator.getInstance();
++    };
++}
+diff --git a/src/com/android/settings/mahdi/omni/AppCircleSidebar.java b/src/com/android/settings/mahdi/omni/AppCircleSidebar.java
+new file mode 100644
+index 0000000..9538e56
+--- /dev/null
++++ b/src/com/android/settings/mahdi/omni/AppCircleSidebar.java
+@@ -0,0 +1,101 @@
++/*
++ *  Copyright (C) 2013 The OmniROM Project
++ *  Modified by 2014 - The Schism Project
++ *
++ * This program is free software: you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation, either version 2 of the License, or
++ * (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++package com.android.settings.mahdi.omni;
++
++import android.app.AlertDialog;
++import android.content.ContentResolver;
++import android.content.Context;
++import android.content.Intent;
++import android.content.DialogInterface;
++import android.content.pm.PackageManager;
++import android.content.pm.PackageManager.NameNotFoundException;
++import android.os.Bundle;
++import android.preference.Preference;
++import android.preference.PreferenceGroup;
++import android.preference.PreferenceScreen;
++import android.provider.Settings;
++import android.provider.Settings.SettingNotFoundException;
++import android.text.TextUtils;
++
++import com.android.settings.R;
++import com.android.settings.SettingsPreferenceFragment;
++
++import com.android.settings.mahdi.lsn.AppMultiSelectListPreference;
++import com.android.internal.util.omni.DeviceUtils;
++
++import java.util.Arrays;
++import java.util.HashSet;
++import java.util.Set;
++
++public class AppCircleSidebar extends SettingsPreferenceFragment implements
++        Preference.OnPreferenceChangeListener {
++    private static final String TAG = "AppCircleSidebar";
++
++    private static final String PREF_INCLUDE_APP_CIRCLE_BAR_KEY = "app_circle_bar_included_apps";
++
++    private AppMultiSelectListPreference mIncludedAppCircleBar;
++
++    @Override
++    public void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        addPreferencesFromResource(R.xml.app_circle_sidebar);
++
++        PreferenceScreen prefSet = getPreferenceScreen();
++        ContentResolver resolver = getActivity().getContentResolver();
++
++        mIncludedAppCircleBar = (AppMultiSelectListPreference) prefSet.findPreference(PREF_INCLUDE_APP_CIRCLE_BAR_KEY);
++        Set<String> includedApps = getIncludedApps();
++        if (includedApps != null) mIncludedAppCircleBar.setValues(includedApps);
++        mIncludedAppCircleBar.setOnPreferenceChangeListener(this);
++    }
++
++    @Override
++    public boolean onPreferenceChange(Preference preference, Object objValue) {
++        ContentResolver resolver = getActivity().getContentResolver();
++        if (preference == mIncludedAppCircleBar) {
++            storeIncludedApps((Set<String>) objValue);
++        } else {
++            return false;
++        }
++
++        return true;
++    }
++
++    private Set<String> getIncludedApps() {
++        String included = Settings.System.getString(getActivity().getContentResolver(),
++                Settings.System.WHITELIST_APP_CIRCLE_BAR);
++        if (TextUtils.isEmpty(included)) {
++            return null;
++        }
++        return new HashSet<String>(Arrays.asList(included.split("\\|")));
++    }
++
++    private void storeIncludedApps(Set<String> values) {
++        StringBuilder builder = new StringBuilder();
++        String delimiter = "";
++        for (String value : values) {
++            builder.append(delimiter);
++            builder.append(value);
++            delimiter = "|";
++        }
++        Settings.System.putString(getActivity().getContentResolver(),
++                Settings.System.WHITELIST_APP_CIRCLE_BAR, builder.toString());
++    }
++}
+-- 
+1.7.9.5
+

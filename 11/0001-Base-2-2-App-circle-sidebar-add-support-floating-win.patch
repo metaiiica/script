@@ -1,0 +1,95 @@
+From 0d6038d6b7a170e5577c6c9da51408b4a0456334 Mon Sep 17 00:00:00 2001
+From: Yanuar Harry <ai.the.smarties.physics@gmail.com>
+Date: Fri, 8 Aug 2014 00:01:34 +0200
+Subject: [PATCH] Base: 2/2 App circle sidebar (add support floating window)
+
+Change-Id: I54b78bda971cd4dffa1ef629d260535ac66a40bf
+---
+ packages/SystemUI/res/menu/sidebar_popup_menu.xml  |    1 +
+ packages/SystemUI/res/values/pac_strings.xml       |    1 +
+ .../appcirclesidebar/AppCircleSidebar.java         |   14 ++++++++++++++
+ 3 files changed, 16 insertions(+)
+
+diff --git a/packages/SystemUI/res/menu/sidebar_popup_menu.xml b/packages/SystemUI/res/menu/sidebar_popup_menu.xml
+index a7aa537..6cafbac 100644
+--- a/packages/SystemUI/res/menu/sidebar_popup_menu.xml
++++ b/packages/SystemUI/res/menu/sidebar_popup_menu.xml
+@@ -18,6 +18,7 @@
+ */
+ -->
+ <menu xmlns:android="http://schemas.android.com/apk/res/android">
++    <item android:id="@+id/sidebar_float_item" android:title="@string/app_float_item_title" />
+     <item android:id="@+id/sidebar_inspect_item" android:title="@string/status_bar_recent_inspect_item_title" />
+     <item android:id="@+id/sidebar_stop_item" android:title="@string/app_stop_item_title" />
+ </menu>
+diff --git a/packages/SystemUI/res/values/pac_strings.xml b/packages/SystemUI/res/values/pac_strings.xml
+index 8c6199a..1b04477 100644
+--- a/packages/SystemUI/res/values/pac_strings.xml
++++ b/packages/SystemUI/res/values/pac_strings.xml
+@@ -55,6 +55,7 @@
+ 
+     <!-- Title shown in notification popup for launching notification in floating mode -->
+     <string name="status_bar_notification_floating_item_title">Floating mode</string>
++    <string name="app_float_item_title">Float view</string>
+     <string name="app_stop_item_title">Kill app</string>
+ 
+     <!-- Title shown when app provides no interface -->
+diff --git a/packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java
+index 5c9a0c9..ae2c2b0 100644
+--- a/packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java
++++ b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java
+@@ -50,6 +50,7 @@ public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCi
+     private PackageAdapter mPackageAdapter;
+     private Context mContext;
+     private boolean mFirstTouch = false;
++    private boolean mFloatingWindow = false;
+     private SettingsObserver mSettingsObserver;
+     private ArrayList<String> mAppRunning;
+     private ArrayList<String> mAppOpening;
+@@ -406,6 +407,10 @@ public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCi
+         ComponentName cn = new ComponentName(packageName, className);
+         Intent intent = Intent.makeMainActivity(cn);
+         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
++        if (mFloatingWindow) {
++            intent.addFlags(Intent.FLAG_FLOATING_WINDOW);
++            mFloatingWindow = false;
++        }
+         mContext.startActivity(intent);
+     }
+ 
+@@ -416,9 +421,14 @@ public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCi
+             Intent intent = Intent.makeMainActivity(cn);
+             intent.setFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY
+                            | Intent.FLAG_ACTIVITY_NEW_TASK);
++            if (mFloatingWindow) {
++                intent.addFlags(Intent.FLAG_FLOATING_WINDOW);
++                mFloatingWindow = false;
++            }
+             mContext.startActivity(intent);
+         } else {
+             updateAutoHideTimer(AUTO_HIDE_DELAY);
++            mFloatingWindow = false;
+         }
+     }
+ 
+@@ -435,6 +445,7 @@ public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCi
+             if (info != null) {
+                 String packageName = info.activityInfo.packageName;
+                 if (!mAppRunning.isEmpty() && mAppRunning.contains(packageName)) {
++                    mFloatingWindow = true;
+                     launchApplicationFromHistory(info.activityInfo.packageName, info.activityInfo.name);
+                 }
+             }
+@@ -478,6 +489,9 @@ public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCi
+                    popup.getMenu());
+             popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                 public boolean onMenuItemClick(MenuItem item) {
++                    if (item.getItemId() == R.id.sidebar_float_item) {
++                        mFloatingWindow = true;
++                        launchApplication(info.activityInfo.packageName, info.activityInfo.name);
+                     } else if (item.getItemId() == R.id.sidebar_inspect_item) {
+                         startApplicationDetailsActivity(info.activityInfo.packageName);
+                     } else if (item.getItemId() == R.id.sidebar_stop_item) {
+-- 
+1.7.9.5
+

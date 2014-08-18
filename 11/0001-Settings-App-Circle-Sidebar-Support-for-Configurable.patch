@@ -1,0 +1,169 @@
+From 4d7dbac997e68873edbddcf301e09345f2c58521 Mon Sep 17 00:00:00 2001
+From: 0xD34D <clakdawg@gmail.com>
+Date: Sat, 9 Aug 2014 21:54:28 +0200
+Subject: [PATCH] Settings: App Circle Sidebar: Support for Configurable
+ Trigger
+
+Change-Id: I53934f841ec2c02769020a296d8ccf51c9d40ac0
+---
+ res/values/cm_strings.xml                          |    9 ++++
+ res/xml/app_circle_sidebar.xml                     |   36 ++++++++++++++
+ .../settings/mahdi/omni/AppCircleSidebar.java      |   51 ++++++++++++++++++++
+ 3 files changed, 96 insertions(+)
+
+diff --git a/res/values/cm_strings.xml b/res/values/cm_strings.xml
+index 0d4f450..c865979 100644
+--- a/res/values/cm_strings.xml
++++ b/res/values/cm_strings.xml
+@@ -1273,4 +1273,13 @@ two in order to insert additional control points. \'Remove\' deletes the selecte
+     <!-- Keep the referenced menu string consistent with status_bar_notification_spam_item_title in frameworks/base/packages/SystemUI -->
+     <string name="no_filters_title">No filters set. To filter a notification, long press it and choose \'Ignore messages like this\'.</string>
+ 
++    <!-- App Circe Side Bar Trigger -->
++    <string name="trigger_category">Trigger region</string>
++    <string name="trigger_width_title">Trigger width</string>
++    <string name="trigger_width_summary">Adjust the width of the trigger area</string>
++    <string name="trigger_top_title">Trigger position</string>
++    <string name="trigger_top_summary">Adjust the vertical postion of the trigger area</string>
++    <string name="trigger_bottom_title">Trigger height</string>
++    <string name="trigger_bottom_summary">Adjust the height of the trigger area</string>
++
+ </resources>
+diff --git a/res/xml/app_circle_sidebar.xml b/res/xml/app_circle_sidebar.xml
+index 9d6c3d7..1a7b6e7 100644
+--- a/res/xml/app_circle_sidebar.xml
++++ b/res/xml/app_circle_sidebar.xml
+@@ -33,4 +33,40 @@
+         android:summary="@string/app_circle_bar_included_apps_summary"
+         android:dependency="enable_app_circle_bar" />
+ 
++    <PreferenceCategory
++        android:title="@string/trigger_category" />
++
++    <com.android.settings.pac.SeekBarPreferenceCHOS
++        android:key="trigger_width"
++        android:title="@string/trigger_width_title"
++        android:summary="@string/trigger_width_summary"
++        android:defaultValue="4"
++        android:max="64"
++        settings:min="4"
++        settings:unitsLeft=""
++        settings:unitsRight="px"
++        android:dependency="enable_app_circle_bar" />
++
++    <com.android.settings.pac.SeekBarPreferenceCHOS
++        android:key="trigger_top"
++        android:title="@string/trigger_top_title"
++        android:summary="@string/trigger_top_summary"
++        android:defaultValue="0"
++        android:max="99"
++        settings:min="0"
++        settings:unitsLeft=""
++        settings:unitsRight="%"
++        android:dependency="enable_app_circle_bar" />
++
++    <com.android.settings.pac.SeekBarPreferenceCHOS
++        android:key="trigger_bottom"
++        android:title="@string/trigger_bottom_title"
++        android:summary="@string/trigger_bottom_summary"
++        android:defaultValue="100"
++        android:max="100"
++        settings:min="1"
++        settings:unitsLeft=""
++        settings:unitsRight="%"
++        android:dependency="enable_app_circle_bar" />
++
+ </PreferenceScreen>
+diff --git a/src/com/android/settings/mahdi/omni/AppCircleSidebar.java b/src/com/android/settings/mahdi/omni/AppCircleSidebar.java
+index 9538e56..b87005a 100644
+--- a/src/com/android/settings/mahdi/omni/AppCircleSidebar.java
++++ b/src/com/android/settings/mahdi/omni/AppCircleSidebar.java
+@@ -35,6 +35,7 @@ import android.provider.Settings.SettingNotFoundException;
+ import android.text.TextUtils;
+ 
+ import com.android.settings.R;
++import com.android.settings.pac.SeekBarPreferenceCHOS;
+ import com.android.settings.SettingsPreferenceFragment;
+ 
+ import com.android.settings.mahdi.lsn.AppMultiSelectListPreference;
+@@ -47,8 +48,14 @@ import java.util.Set;
+ public class AppCircleSidebar extends SettingsPreferenceFragment implements
+         Preference.OnPreferenceChangeListener {
+     private static final String TAG = "AppCircleSidebar";
++    private static final String KEY_TRIGGER_WIDTH = "trigger_width";
++    private static final String KEY_TRIGGER_TOP = "trigger_top";
++    private static final String KEY_TRIGGER_BOTTOM = "trigger_bottom";
+ 
+     private static final String PREF_INCLUDE_APP_CIRCLE_BAR_KEY = "app_circle_bar_included_apps";
++    private SeekBarPreferenceCHOS mTriggerWidthPref;
++    private SeekBarPreferenceCHOS mTriggerTopPref;
++    private SeekBarPreferenceCHOS mTriggerBottomPref;
+ 
+     private AppMultiSelectListPreference mIncludedAppCircleBar;
+ 
+@@ -64,6 +71,21 @@ public class AppCircleSidebar extends SettingsPreferenceFragment implements
+         Set<String> includedApps = getIncludedApps();
+         if (includedApps != null) mIncludedAppCircleBar.setValues(includedApps);
+         mIncludedAppCircleBar.setOnPreferenceChangeListener(this);
++
++        mTriggerWidthPref = (SeekBarPreferenceCHOS) findPreference(KEY_TRIGGER_WIDTH);
++        mTriggerWidthPref.setValue(Settings.System.getInt(getContentResolver(),
++                Settings.System.APP_CIRCLE_BAR_TRIGGER_WIDTH, 10));
++        mTriggerWidthPref.setOnPreferenceChangeListener(this);
++
++        mTriggerTopPref = (SeekBarPreferenceCHOS) findPreference(KEY_TRIGGER_TOP);
++        mTriggerTopPref.setValue(Settings.System.getInt(getContentResolver(),
++                Settings.System.APP_CIRCLE_BAR_TRIGGER_TOP, 0));
++        mTriggerTopPref.setOnPreferenceChangeListener(this);
++
++        mTriggerBottomPref = (SeekBarPreferenceCHOS) findPreference(KEY_TRIGGER_BOTTOM);
++        mTriggerBottomPref.setValue(Settings.System.getInt(getContentResolver(),
++                Settings.System.APP_CIRCLE_BAR_TRIGGER_HEIGHT, 100));
++        mTriggerBottomPref.setOnPreferenceChangeListener(this);
+     }
+ 
+     @Override
+@@ -71,6 +93,21 @@ public class AppCircleSidebar extends SettingsPreferenceFragment implements
+         ContentResolver resolver = getActivity().getContentResolver();
+         if (preference == mIncludedAppCircleBar) {
+             storeIncludedApps((Set<String>) objValue);
++        } else if (preference == mTriggerWidthPref) {
++            int width = ((Integer)objValue).intValue();
++            Settings.System.putInt(getContentResolver(),
++                    Settings.System.APP_CIRCLE_BAR_TRIGGER_WIDTH, width);
++            return true;
++        } else if (preference == mTriggerTopPref) {
++            int top = ((Integer)objValue).intValue();
++            Settings.System.putInt(getContentResolver(),
++                    Settings.System.APP_CIRCLE_BAR_TRIGGER_TOP, top);
++            return true;
++        } else if (preference == mTriggerBottomPref) {
++            int bottom = ((Integer)objValue).intValue();
++            Settings.System.putInt(getContentResolver(),
++                    Settings.System.APP_CIRCLE_BAR_TRIGGER_HEIGHT, bottom);
++            return true;
+         } else {
+             return false;
+         }
+@@ -98,4 +135,18 @@ public class AppCircleSidebar extends SettingsPreferenceFragment implements
+         Settings.System.putString(getActivity().getContentResolver(),
+                 Settings.System.WHITELIST_APP_CIRCLE_BAR, builder.toString());
+     }
++
++    @Override
++    public void onPause() {
++        super.onPause();
++        Settings.System.putInt(getContentResolver(),
++                Settings.System.APP_CIRCLE_BAR_SHOW_TRIGGER, 0);
++    }
++
++    @Override
++    public void onResume() {
++        super.onResume();
++        Settings.System.putInt(getContentResolver(),
++                Settings.System.APP_CIRCLE_BAR_SHOW_TRIGGER, 1);
++    }
+ }
+-- 
+1.7.9.5
+

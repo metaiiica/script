@@ -1,0 +1,346 @@
+From 165539c24023f965690f0d8672e8c168c62c5f3f Mon Sep 17 00:00:00 2001
+From: 0xD34D <clakdawg@gmail.com>
+Date: Fri, 8 Aug 2014 01:24:43 +0200
+Subject: [PATCH] Base: App Circle Sidebar: Support for Configurable Trigger
+
+Change-Id: Icca55266bffc399388d99d80482af9b3daab6349
+---
+ core/java/android/provider/Settings.java           |   28 ++++
+ packages/SystemUI/res/drawable/trigger_region.xml  |   12 ++
+ .../appcirclesidebar/AppCircleSidebar.java         |   63 ++++-----
+ .../android/systemui/chaos/TriggerOverlayView.java |  144 ++++++++++++++++++++
+ 4 files changed, 209 insertions(+), 38 deletions(-)
+ create mode 100644 packages/SystemUI/res/drawable/trigger_region.xml
+ create mode 100644 packages/SystemUI/src/com/android/systemui/chaos/TriggerOverlayView.java
+
+diff --git a/core/java/android/provider/Settings.java b/core/java/android/provider/Settings.java
+index cd8d77e..56804b8 100644
+--- a/core/java/android/provider/Settings.java
++++ b/core/java/android/provider/Settings.java
+@@ -2723,6 +2723,34 @@ public final class Settings {
+         public static final String WHITELIST_APP_CIRCLE_BAR = "whitelist_app_circle_bar";
+ 
+         /**
++         * Width of the app circle bar trigger
++         *
++         * @hide
++         */
++        public static final String APP_CIRCLE_BAR_TRIGGER_WIDTH = "app_circle_bar_trigger_width";
++
++        /**
++         * Position of app circle bar trigger
++         *
++         * @hide
++         */
++        public static final String APP_CIRCLE_BAR_TRIGGER_TOP = "app_circle_bar_trigger_top";
++
++        /**
++         * Height of the app circle bar trigger
++         *
++         * @hide
++         */
++        public static final String APP_CIRCLE_BAR_TRIGGER_HEIGHT = "app_circle_bar_trigger_height";
++
++        /**
++         * Whether to display the trigger region or not
++         *
++         * @hide
++         */
++        public static final String APP_CIRCLE_BAR_SHOW_TRIGGER = "app_circle_bar_show_trigger";
++
++        /**
+          * Lockscreen battery status visibility mode
+          * 0 = show if charging
+          * 1 = always show
+diff --git a/packages/SystemUI/res/drawable/trigger_region.xml b/packages/SystemUI/res/drawable/trigger_region.xml
+new file mode 100644
+index 0000000..6467014
+--- /dev/null
++++ b/packages/SystemUI/res/drawable/trigger_region.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<shape xmlns:android="http://schemas.android.com/apk/res/android" >
++    <stroke
++        android:width="2dp"
++        android:color="#FF27a9e1" />
++    
++    <solid
++        android:color="#8027a9e1" />
++
++    <corners
++        android:radius="3dp" />
++</shape>
+diff --git a/packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java
+index ae2c2b0..435dfd0 100644
+--- a/packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java
++++ b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java
+@@ -26,12 +26,13 @@ import android.view.animation.TranslateAnimation;
+ import android.view.WindowManager;
+ import android.widget.*;
+ 
++import com.android.systemui.chaos.TriggerOverlayView;
+ import com.android.systemui.R;
+ 
+ import java.util.ArrayList;
+ import java.util.Calendar;
+ 
+-public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCircleItemClickListener,
++public class AppCircleSidebar extends TriggerOverlayView implements PackageAdapter.OnCircleItemClickListener,
+                             CircleListView.OnItemCenteredListener {
+     private static final String TAG = "AppCircleSidebar";
+     private static final boolean DEBUG_LAYOUT = false;
+@@ -135,6 +136,14 @@ public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCi
+                     Settings.System.ENABLE_APP_CIRCLE_BAR), false, this);
+             resolver.registerContentObserver(Settings.System.getUriFor(
+                     Settings.System.WHITELIST_APP_CIRCLE_BAR), false, this);
++            resolver.registerContentObserver(Settings.System.getUriFor(
++                    Settings.System.APP_CIRCLE_BAR_TRIGGER_WIDTH), false, this);
++            resolver.registerContentObserver(Settings.System.getUriFor(
++                    Settings.System.APP_CIRCLE_BAR_TRIGGER_TOP), false, this);
++            resolver.registerContentObserver(Settings.System.getUriFor(
++                    Settings.System.APP_CIRCLE_BAR_TRIGGER_HEIGHT), false, this);
++            resolver.registerContentObserver(Settings.System.getUriFor(
++                    Settings.System.APP_CIRCLE_BAR_SHOW_TRIGGER), false, this);
+             update();
+         }
+ 
+@@ -159,6 +168,20 @@ public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCi
+                 mPackageAdapter.createIncludedAppsSet(includedApps);
+                 mPackageAdapter.reloadApplications();
+             }
++
++            int width = Settings.System.getInt(
++                    resolver, Settings.System.APP_CIRCLE_BAR_TRIGGER_WIDTH, 10);
++            if (mTriggerWidth != width)
++                setTriggerWidth(width);
++            setTopPercentage(Settings.System.getInt(
++                    resolver, Settings.System.APP_CIRCLE_BAR_TRIGGER_TOP, 0) / 100f);
++            setBottomPercentage(Settings.System.getInt(
++                    resolver, Settings.System.APP_CIRCLE_BAR_TRIGGER_HEIGHT, 100) / 100f);
++            if (Settings.System.getInt(
++                    resolver, Settings.System.APP_CIRCLE_BAR_SHOW_TRIGGER, 0) == 1)
++                showTriggerRegion();
++            else
++                hideTriggerRegion();
+         }
+     }
+ 
+@@ -229,28 +252,6 @@ public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCi
+         return super.dispatchKeyEventPreIme(event);
+     }
+ 
+-    private int enableKeyEvents() {
+-        return (0
+-                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+-                | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+-                | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH);
+-    }
+-
+-    private int disableKeyEvents() {
+-        return (0
+-                | WindowManager.LayoutParams.FLAG_TOUCHABLE_WHEN_WAKING
+-                | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+-                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+-                | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+-                | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH);
+-    }
+-
+-    private int getWindowHeight() {
+-        Rect r = new Rect();
+-        getWindowVisibleDisplayFrame(r);
+-        return r.bottom - r.top;
+-    }
+-
+     private void expandFromRegion() {
+         WindowManager.LayoutParams params = (WindowManager.LayoutParams) getLayoutParams();
+         params.y = 0;
+@@ -260,15 +261,6 @@ public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCi
+         mWM.updateViewLayout(this, params);
+     }
+ 
+-    private void reduceToRegion() {
+-        WindowManager.LayoutParams params = (WindowManager.LayoutParams) getLayoutParams();
+-        params.y = 0;
+-        params.height = (getWindowHeight() / 2);
+-        params.width = mTriggerWidth;
+-        params.flags = disableKeyEvents();
+-        mWM.updateViewLayout(this, mLayoutParams);
+-    }
+-
+     private TranslateAnimation mSlideOut = new TranslateAnimation(
+             Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 1.0f,
+             Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 0.0f);
+@@ -315,7 +307,7 @@ public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCi
+                 case CLOSING:
+                     mState = SIDEBAR_STATE.CLOSED;
+                     mCircleListView.setVisibility(View.GONE);
+-                    reduceToRegion();
++                    reduceToTriggerRegion();
+                     break;
+                 case OPENING:
+                     mState = SIDEBAR_STATE.OPENED;
+@@ -329,11 +321,6 @@ public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCi
+         }
+     };
+ 
+-    private boolean isKeyguardEnabled() {
+-        KeyguardManager km = (KeyguardManager)mContext.getSystemService(Context.KEYGUARD_SERVICE);
+-        return km.inKeyguardRestrictedInputMode();
+-    }
+-
+     public void updateAutoHideTimer(long delay) {
+         Context ctx = getContext();
+         AlarmManager am = (AlarmManager)ctx.getSystemService(Context.ALARM_SERVICE);
+diff --git a/packages/SystemUI/src/com/android/systemui/chaos/TriggerOverlayView.java b/packages/SystemUI/src/com/android/systemui/chaos/TriggerOverlayView.java
+new file mode 100644
+index 0000000..2ce6ab4
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/chaos/TriggerOverlayView.java
+@@ -0,0 +1,144 @@
++/*
++ * Copyright (C) 2013 The ChameleonOS Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.systemui.chaos;
++
++import android.app.KeyguardManager;
++import android.content.Context;
++import android.graphics.Rect;
++import android.util.AttributeSet;
++import android.view.Gravity;
++import android.view.WindowManager;
++import android.widget.FrameLayout;
++import com.android.systemui.R;
++
++public abstract class TriggerOverlayView extends FrameLayout {
++    final protected WindowManager mWM;
++
++    protected WindowManager.LayoutParams mLayoutParams;
++    protected int mTriggerWidth;
++    protected int mTriggerTop;
++    protected int mTriggerBottom;
++    protected int mViewHeight;
++
++    public TriggerOverlayView(Context context) {
++        this(context, null);
++    }
++
++    public TriggerOverlayView(Context context, AttributeSet attrs) {
++        this(context, attrs, 0);
++    }
++
++    public TriggerOverlayView(Context context, AttributeSet attrs, int defStyle) {
++        super(context, attrs, defStyle);
++        mWM = (WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE);
++        mViewHeight = getWindowHeight();
++    }
++
++    protected int getWindowHeight() {
++        Rect r = new Rect();
++        getWindowVisibleDisplayFrame(r);
++        return r.bottom - r.top;
++    }
++
++    protected int enableKeyEvents() {
++        return (0
++                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
++                | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
++                | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH);
++    }
++
++    protected int disableKeyEvents() {
++        return (0
++                | WindowManager.LayoutParams.FLAG_TOUCHABLE_WHEN_WAKING
++                | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
++                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
++                | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
++                | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH);
++    }
++
++    protected void setPosition(int gravity) {
++        mLayoutParams = (WindowManager.LayoutParams) getLayoutParams();
++        mLayoutParams.gravity = Gravity.TOP | gravity;
++        mWM.updateViewLayout(this, mLayoutParams);
++        invalidate();
++    }
++
++    protected void showTriggerRegion() {
++        setBackgroundResource(R.drawable.trigger_region);
++    }
++
++    protected void hideTriggerRegion() {
++        setBackgroundColor(0);
++    }
++
++    protected void setTopPercentage(float value) {
++        mLayoutParams = (WindowManager.LayoutParams)this.getLayoutParams();
++        mTriggerTop = (int)(mViewHeight * value);
++        mLayoutParams.y = mTriggerTop;
++        mLayoutParams.height = mTriggerBottom;
++        try {
++            mWM.updateViewLayout(this, mLayoutParams);
++        } catch (Exception e) {
++        }
++    }
++
++    protected void setBottomPercentage(float value) {
++        mLayoutParams = (WindowManager.LayoutParams)this.getLayoutParams();
++        mTriggerBottom = (int)(mViewHeight * value);
++        mLayoutParams.height = mTriggerBottom;
++        try {
++            mWM.updateViewLayout(this, mLayoutParams);
++        } catch (Exception e) {
++        }
++    }
++
++    protected void setTriggerWidth(int value) {
++        mLayoutParams = (WindowManager.LayoutParams)this.getLayoutParams();
++        mTriggerWidth = value;
++        mLayoutParams.width = mTriggerWidth;
++        try {
++            mWM.updateViewLayout(this, mLayoutParams);
++        } catch (Exception e) {
++        }
++    }
++
++    protected void expandFromTriggerRegion() {
++        mLayoutParams = (WindowManager.LayoutParams) getLayoutParams();
++        mLayoutParams.y = 0;
++        Rect r = new Rect();
++        getWindowVisibleDisplayFrame(r);
++        mViewHeight = r.bottom - r.top;
++        mLayoutParams.height = mViewHeight;
++        mLayoutParams.width = LayoutParams.MATCH_PARENT;
++        mLayoutParams.flags = enableKeyEvents();
++        mWM.updateViewLayout(this, mLayoutParams);
++    }
++
++    protected void reduceToTriggerRegion() {
++        mLayoutParams = (WindowManager.LayoutParams) getLayoutParams();
++        mLayoutParams.y = mTriggerTop;
++        mLayoutParams.height = mTriggerBottom;
++        mLayoutParams.width = mTriggerWidth;
++        mLayoutParams.flags = disableKeyEvents();
++        mWM.updateViewLayout(this, mLayoutParams);
++    }
++
++    protected boolean isKeyguardEnabled() {
++        KeyguardManager km = (KeyguardManager)mContext.getSystemService(Context.KEYGUARD_SERVICE);
++        return km.inKeyguardRestrictedInputMode();
++    }
++}
+-- 
+1.7.9.5
+

@@ -1,0 +1,1413 @@
+From 85a83433f55204572fc6b3cb61bbc586f663895f Mon Sep 17 00:00:00 2001
+From: Yanuar Harry <ai.the.smarties.physics@gmail.com>
+Date: Thu, 7 Aug 2014 23:56:53 +0200
+Subject: [PATCH] Base: 1/2 Implement App circle sidebar
+
+Change-Id: I93b73fe18eb5cdbfbc283c68979baec25d2706f1
+---
+ core/java/android/content/Intent.java              |   14 +
+ core/java/android/provider/Settings.java           |   13 +
+ .../res/layout/keyguard_emergency_carrier_area.xml |    8 +-
+ .../SystemUI/res/color/circle_list_item_text.xml   |    7 +
+ .../drawable/circle_list_item_text_background.xml  |    9 +
+ .../SystemUI/res/layout/app_circle_sidebar.xml     |   16 +
+ packages/SystemUI/res/layout/circle_list_item.xml  |   30 ++
+ packages/SystemUI/res/menu/sidebar_popup_menu.xml  |   23 +
+ packages/SystemUI/res/values/keys.xml              |    8 +
+ packages/SystemUI/res/values/pac_dimens.xml        |    2 +
+ packages/SystemUI/res/values/pac_strings.xml       |    1 +
+ packages/SystemUI/res/values/pac_styles.xml        |   11 +
+ .../appcirclesidebar/AppCircleSidebar.java         |  510 ++++++++++++++++++++
+ .../systemui/appcirclesidebar/CircleListView.java  |  201 ++++++++
+ .../appcirclesidebar/CircularViewModifier.java     |   33 ++
+ .../appcirclesidebar/InputItemHandler.java         |   39 ++
+ .../systemui/appcirclesidebar/PackageAdapter.java  |  206 ++++++++
+ .../systemui/appcirclesidebar/ViewModifier.java    |    8 +
+ .../android/systemui/statusbar/BaseStatusBar.java  |   38 ++
+ .../systemui/statusbar/phone/PhoneStatusBar.java   |    2 +
+ 20 files changed, 1175 insertions(+), 4 deletions(-)
+ create mode 100644 packages/SystemUI/res/color/circle_list_item_text.xml
+ create mode 100644 packages/SystemUI/res/drawable/circle_list_item_text_background.xml
+ create mode 100644 packages/SystemUI/res/layout/app_circle_sidebar.xml
+ create mode 100644 packages/SystemUI/res/layout/circle_list_item.xml
+ create mode 100644 packages/SystemUI/res/menu/sidebar_popup_menu.xml
+ create mode 100644 packages/SystemUI/res/values/keys.xml
+ create mode 100644 packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java
+ create mode 100644 packages/SystemUI/src/com/android/systemui/appcirclesidebar/CircleListView.java
+ create mode 100644 packages/SystemUI/src/com/android/systemui/appcirclesidebar/CircularViewModifier.java
+ create mode 100644 packages/SystemUI/src/com/android/systemui/appcirclesidebar/InputItemHandler.java
+ create mode 100644 packages/SystemUI/src/com/android/systemui/appcirclesidebar/PackageAdapter.java
+ create mode 100644 packages/SystemUI/src/com/android/systemui/appcirclesidebar/ViewModifier.java
+
+diff --git a/core/java/android/content/Intent.java b/core/java/android/content/Intent.java
+index a535910..0ece0cc 100644
+--- a/core/java/android/content/Intent.java
++++ b/core/java/android/content/Intent.java
+@@ -681,6 +681,20 @@ public class Intent implements Parcelable, Cloneable {
+     public static final String ACTION_POWERMENU_REBOOT = "android.intent.action.POWERMENU_REBOOT";
+ 
+     /**
++     * Registered and foreground services only
++     * @hide
++     */
++    public static final String ACTION_ACTIVITY_LAUNCH_DETECTOR =
++            "android.intent.action.ACTIVITY_LAUNCH_DETECTOR";
++
++    /**
++     * Registered and foreground services only
++     * @hide
++     */
++    public static final String ACTION_ACTIVITY_END_DETECTOR =
++            "android.intent.action.ACTIVITY_END_DETECTOR";
++
++    /**
+      * Activity Action: Creates a shortcut.
+      * <p>Input: Nothing.</p>
+      * <p>Output: An Intent representing the shortcut. The intent must contain three
+diff --git a/core/java/android/provider/Settings.java b/core/java/android/provider/Settings.java
+index 745c91d..cd8d77e 100644
+--- a/core/java/android/provider/Settings.java
++++ b/core/java/android/provider/Settings.java
+@@ -2710,6 +2710,19 @@ public final class Settings {
+         public static final String LOCKSCREEN_TARGETS = "lockscreen_targets";
+ 
+         /**
++         * Whether to display app circle sidebar
++         * @hide
++         */
++        public static final String ENABLE_APP_CIRCLE_BAR = "enable_app_circle_bar";
++
++        /**
++         * A list of packages to include in app circle bar.
++         * This should be a string of packages separated by |
++         * @hide
++         */
++        public static final String WHITELIST_APP_CIRCLE_BAR = "whitelist_app_circle_bar";
++
++        /**
+          * Lockscreen battery status visibility mode
+          * 0 = show if charging
+          * 1 = always show
+diff --git a/packages/Keyguard/res/layout/keyguard_emergency_carrier_area.xml b/packages/Keyguard/res/layout/keyguard_emergency_carrier_area.xml
+index 5040f3d..c6069a9 100644
+--- a/packages/Keyguard/res/layout/keyguard_emergency_carrier_area.xml
++++ b/packages/Keyguard/res/layout/keyguard_emergency_carrier_area.xml
+@@ -28,7 +28,7 @@
+     android:gravity="center"
+     android:layout_gravity="center_horizontal"
+     android:layout_alignParentBottom="true"
+-    android:clickable="true">
++    android:clickable="true">
+ 
+     <!-- Used only for Multi Sim case -->
+     <ViewStub android:id="@+id/stub_msim_carrier_text"
+@@ -53,20 +53,20 @@
+         style="?android:attr/buttonBarStyle"
+         android:orientation="horizontal"
+         android:gravity="center"
+-        android:weightSum="2">
++        android:weightSum="2">
+ 
+         <com.android.keyguard.EmergencyButton
+             android:id="@+id/emergency_call_button"
+             android:layout_width="0dip"
+             android:layout_height="wrap_content"
+-            android:layout_weight="1"
++            android:layout_weight="1"
+             android:drawableLeft="@drawable/lockscreen_emergency_button"
+             android:text="@string/kg_emergency_call_label"
+             style="?android:attr/buttonBarButtonStyle"
+             android:textAppearance="?android:attr/textAppearanceMedium"
+             android:textSize="@dimen/kg_status_line_font_size"
+             android:textColor="?android:attr/textColorSecondary"
+-            android:drawablePadding="8dip" 
++            android:drawablePadding="8dip" 
+             android:textAllCaps="@bool/kg_use_all_caps" />
+ 
+         <Button android:id="@+id/forgot_password_button"
+diff --git a/packages/SystemUI/res/color/circle_list_item_text.xml b/packages/SystemUI/res/color/circle_list_item_text.xml
+new file mode 100644
+index 0000000..743e95a
+--- /dev/null
++++ b/packages/SystemUI/res/color/circle_list_item_text.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<selector xmlns:android="http://schemas.android.com/apk/res/android">
++
++    <!-- default -->
++    <item android:color="@android:color/primary_text_dark"/>
++
++</selector>
+\ No newline at end of file
+diff --git a/packages/SystemUI/res/drawable/circle_list_item_text_background.xml b/packages/SystemUI/res/drawable/circle_list_item_text_background.xml
+new file mode 100644
+index 0000000..899689e
+--- /dev/null
++++ b/packages/SystemUI/res/drawable/circle_list_item_text_background.xml
+@@ -0,0 +1,9 @@
++<?xml version="1.0" encoding="utf-8"?>
++<shape xmlns:android="http://schemas.android.com/apk/res/android"
++    android:shape="rectangle" >
++
++    <corners android:radius="6dp" />
++
++    <solid android:color="#66000000" />
++
++</shape>
+\ No newline at end of file
+diff --git a/packages/SystemUI/res/layout/app_circle_sidebar.xml b/packages/SystemUI/res/layout/app_circle_sidebar.xml
+new file mode 100644
+index 0000000..1274d9b
+--- /dev/null
++++ b/packages/SystemUI/res/layout/app_circle_sidebar.xml
+@@ -0,0 +1,16 @@
++<?xml version="1.0" encoding="utf-8"?>
++
++<com.android.systemui.statusbar.appcirclesidebar.AppCircleSidebar
++    xmlns:android="http://schemas.android.com/apk/res/android"
++    android:id="@+id/app_sidebar"
++    android:layout_width="wrap_content"
++    android:layout_height="match_parent"
++    android:background="@android:color/transparent" >
++
++    <com.android.systemui.statusbar.appcirclesidebar.CircleListView
++        android:id="@+id/circle_list"
++        style="@style/ListTheme"
++        android:layout_width="160dp"
++        android:layout_height="match_parent" />
++
++</com.android.systemui.statusbar.appcirclesidebar.AppCircleSidebar>
+diff --git a/packages/SystemUI/res/layout/circle_list_item.xml b/packages/SystemUI/res/layout/circle_list_item.xml
+new file mode 100644
+index 0000000..48d1d96
+--- /dev/null
++++ b/packages/SystemUI/res/layout/circle_list_item.xml
+@@ -0,0 +1,30 @@
++<?xml version="1.0" encoding="utf-8"?>
++<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent" >
++
++    <RelativeLayout
++        android:layout_width="match_parent"
++        android:layout_height="match_parent"
++        android:paddingBottom="20dp"
++        android:paddingTop="20dp" >
++
++        <ImageView
++            android:id="@+id/icon"
++            android:layout_width="72dp"
++            android:layout_height="72dp"
++            android:layout_centerVertical="true"
++            android:scaleType="fitXY"/>
++
++        <TextView
++            android:id="@+id/label_app_name"
++            android:layout_width="wrap_content"
++            android:layout_height="match_parent"
++            android:layout_centerVertical="true"
++            android:layout_toRightOf="@+id/icon"
++            android:background="@drawable/circle_list_item_text_background"
++            android:padding="2dp"
++            android:textColor="@color/circle_list_item_text" />
++    </RelativeLayout>
++
++</FrameLayout>
+diff --git a/packages/SystemUI/res/menu/sidebar_popup_menu.xml b/packages/SystemUI/res/menu/sidebar_popup_menu.xml
+new file mode 100644
+index 0000000..a7aa537
+--- /dev/null
++++ b/packages/SystemUI/res/menu/sidebar_popup_menu.xml
+@@ -0,0 +1,23 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++/* apps/common/assets/default/default/skins/StatusBar.xml
++**
++** Copyright 2011, The Android Open Source Project
++**
++** Licensed under the Apache License, Version 2.0 (the "License");
++** you may not use this file except in compliance with the License.
++** You may obtain a copy of the License at
++**
++**     http://www.apache.org/licenses/LICENSE-2.0
++**
++** Unless required by applicable law or agreed to in writing, software
++** distributed under the License is distributed on an "AS IS" BASIS,
++** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++** See the License for the specific language governing permissions and
++** limitations under the License.
++*/
++-->
++<menu xmlns:android="http://schemas.android.com/apk/res/android">
++    <item android:id="@+id/sidebar_inspect_item" android:title="@string/status_bar_recent_inspect_item_title" />
++    <item android:id="@+id/sidebar_stop_item" android:title="@string/app_stop_item_title" />
++</menu>
+diff --git a/packages/SystemUI/res/values/keys.xml b/packages/SystemUI/res/values/keys.xml
+new file mode 100644
+index 0000000..9b8578c
+--- /dev/null
++++ b/packages/SystemUI/res/values/keys.xml
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources xmlns:android="http://schemas.android.com/apk/res/android">
++
++    <!-- For PackageAdapter View.setTag(int key, Object obj) purposes. -->
++
++    <item name="key_parent" type="id"/>
++    <item name="key_position" type="id"/>
++</resources>
+diff --git a/packages/SystemUI/res/values/pac_dimens.xml b/packages/SystemUI/res/values/pac_dimens.xml
+index b3f88ee..cbb8ad0 100644
+--- a/packages/SystemUI/res/values/pac_dimens.xml
++++ b/packages/SystemUI/res/values/pac_dimens.xml
+@@ -41,6 +41,8 @@
+     <dimen name="pie_sysinfo_second_layer_radius">255dp</dimen>
+     <dimen name="pie_sysinfo_height">85sp</dimen>
+ 
++    <dimen name="app_sidebar_trigger_width">10dip</dimen>
++
+     <!-- Slim recent -->
+     <dimen name="recent_width">230dp</dimen>
+     <dimen name="recent_app_icon_size">48dp</dimen>
+diff --git a/packages/SystemUI/res/values/pac_strings.xml b/packages/SystemUI/res/values/pac_strings.xml
+index 2c0de8f..8c6199a 100644
+--- a/packages/SystemUI/res/values/pac_strings.xml
++++ b/packages/SystemUI/res/values/pac_strings.xml
+@@ -55,6 +55,7 @@
+ 
+     <!-- Title shown in notification popup for launching notification in floating mode -->
+     <string name="status_bar_notification_floating_item_title">Floating mode</string>
++    <string name="app_stop_item_title">Kill app</string>
+ 
+     <!-- Title shown when app provides no interface -->
+     <string name="status_bar_floating_no_interface">App provides no interface</string>
+diff --git a/packages/SystemUI/res/values/pac_styles.xml b/packages/SystemUI/res/values/pac_styles.xml
+index db9b1ea..6ce5597 100644
+--- a/packages/SystemUI/res/values/pac_styles.xml
++++ b/packages/SystemUI/res/values/pac_styles.xml
+@@ -82,4 +82,15 @@
+         <item name="android:textColor">@android:color/primary_text_dark</item>
+     </style>
+ 
++    <style name="ListTheme" parent="@*android:style/Theme.Holo">
++        <item name="android:windowBackground">@*android:color/transparent</item>
++        <item name="android:windowIsTranslucent">true</item>
++        <item name="android:backgroundDimEnabled">true</item>
++        <item name="android:listSelector">@*android:color/transparent</item>
++        <item name="android:scrollbars">none</item>
++        <item name="android:clipChildren">false</item>
++        <item name="android:overScrollMode">never</item>
++        <item name="android:divider">@null</item>
++    </style>
++
+ </resources>
+diff --git a/packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java
+new file mode 100644
+index 0000000..5c9a0c9
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/AppCircleSidebar.java
+@@ -0,0 +1,510 @@
++package com.android.systemui.statusbar.appcirclesidebar;
++
++import static android.view.KeyEvent.ACTION_DOWN;
++import static android.view.KeyEvent.KEYCODE_BACK;
++
++import android.app.Activity;
++import android.app.ActivityManager;
++import android.app.AlarmManager;
++import android.app.KeyguardManager;
++import android.app.PendingIntent;
++import android.app.TaskStackBuilder;
++import android.content.*;
++import android.content.pm.PackageManager;
++import android.content.pm.ResolveInfo;
++import android.database.ContentObserver;
++import android.graphics.Rect;
++import android.net.Uri;
++import android.os.Handler;
++import android.os.UserHandle;
++import android.provider.Settings;
++import android.util.AttributeSet;
++import android.view.*;
++import android.view.animation.Animation;
++import android.view.animation.DecelerateInterpolator;
++import android.view.animation.TranslateAnimation;
++import android.view.WindowManager;
++import android.widget.*;
++
++import com.android.systemui.R;
++
++import java.util.ArrayList;
++import java.util.Calendar;
++
++public class AppCircleSidebar extends FrameLayout implements PackageAdapter.OnCircleItemClickListener,
++                            CircleListView.OnItemCenteredListener {
++    private static final String TAG = "AppCircleSidebar";
++    private static final boolean DEBUG_LAYOUT = false;
++    private static final long AUTO_HIDE_DELAY = 3000;
++
++    private static final String ACTION_HIDE_APP_CONTAINER
++            = "com.android.internal.policy.statusbar.HIDE_APP_CONTAINER";
++
++    private static enum SIDEBAR_STATE { OPENING, OPENED, CLOSING, CLOSED };
++    private SIDEBAR_STATE mState = SIDEBAR_STATE.CLOSED;
++
++    private static final String DRAG_LABEL_SHORTCUT = "Dragging shortcut";
++
++    private int mTriggerWidth;
++    private CircleListView mCircleListView;
++    private PackageAdapter mPackageAdapter;
++    private Context mContext;
++    private boolean mFirstTouch = false;
++    private SettingsObserver mSettingsObserver;
++    private ArrayList<String> mAppRunning;
++    private ArrayList<String> mAppOpening;
++
++    private PopupMenu mPopup;
++    private WindowManager mWM;
++
++    public AppCircleSidebar(Context context) {
++        this(context, null);
++    }
++
++    public AppCircleSidebar(Context context, AttributeSet attrs) {
++        this(context, attrs, 0);
++    }
++
++    public AppCircleSidebar(Context context, AttributeSet attrs, int defStyle) {
++        super(context, attrs, defStyle);
++        mTriggerWidth = context.getResources().getDimensionPixelSize(R.dimen.app_sidebar_trigger_width);
++        mContext = context;
++        mWM = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
++    }
++
++    @Override
++    protected void onFinishInflate() {
++        super.onFinishInflate();
++
++        IntentFilter filter = new IntentFilter();
++        filter.addAction(Intent.ACTION_ACTIVITY_LAUNCH_DETECTOR);
++        filter.addAction(Intent.ACTION_ACTIVITY_END_DETECTOR);
++        filter.addAction(Intent.ACTION_SCREEN_OFF);
++        filter.addAction(ACTION_HIDE_APP_CONTAINER);
++        mContext.registerReceiver(mBroadcastReceiver, filter);
++
++        filter = new IntentFilter();
++        filter.addAction(Intent.ACTION_PACKAGE_ADDED);
++        filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
++        filter.addAction(Intent.ACTION_PACKAGE_CHANGED);
++        filter.addDataScheme("package");
++        getContext().registerReceiver(mAppChangeReceiver, filter);
++
++        mCircleListView = (CircleListView) findViewById(R.id.circle_list);
++        mPackageAdapter = new PackageAdapter(mContext);
++        mPackageAdapter.setOnCircleItemClickListener(this);
++
++        mCircleListView.setAdapter(mPackageAdapter);
++        mCircleListView.setViewModifier(new CircularViewModifier());
++        mCircleListView.setOnItemCenteredListener(this);
++        mCircleListView.setVisibility(View.GONE);
++        createAnimatimations();
++        mSettingsObserver = new SettingsObserver(new Handler());
++        mAppRunning = new ArrayList<String>();
++        mAppOpening = new ArrayList<String>();
++    }
++
++    @Override
++    protected void onAttachedToWindow() {
++        super.onAttachedToWindow();
++        if (mSettingsObserver != null) {
++            mSettingsObserver.observe();
++        }
++        if (mPackageAdapter != null) {
++            mPackageAdapter.reloadApplications();
++        }
++    }
++
++    @Override
++    protected void onDetachedFromWindow() {
++        super.onDetachedFromWindow();
++        if (mSettingsObserver != null) {
++            mSettingsObserver.unobserve();
++        }
++    }
++
++    private class SettingsObserver extends ContentObserver {
++        public SettingsObserver(Handler handler) {
++            super(handler);
++        }
++
++        void observe() {
++            final ContentResolver resolver = mContext.getContentResolver();
++            resolver.registerContentObserver(Settings.System.getUriFor(
++                    Settings.System.ENABLE_APP_CIRCLE_BAR), false, this);
++            resolver.registerContentObserver(Settings.System.getUriFor(
++                    Settings.System.WHITELIST_APP_CIRCLE_BAR), false, this);
++            update();
++        }
++
++        void unobserve() {
++            mContext.getContentResolver().unregisterContentObserver(this);
++        }
++
++        @Override
++        public void onChange(boolean selfChange) {
++            update();
++        }
++
++        public void update() {
++            final ContentResolver resolver = mContext.getContentResolver();
++            setAppBarVisibility(Settings.System.getIntForUser(
++                    resolver, Settings.System.ENABLE_APP_CIRCLE_BAR, 0,
++                    UserHandle.USER_CURRENT_OR_SELF) == 1);
++            String includedApps = Settings.System.getStringForUser(resolver,
++                    Settings.System.WHITELIST_APP_CIRCLE_BAR,
++                    UserHandle.USER_CURRENT_OR_SELF);
++            if (mPackageAdapter != null) {
++                mPackageAdapter.createIncludedAppsSet(includedApps);
++                mPackageAdapter.reloadApplications();
++            }
++        }
++    }
++
++    private void setAppBarVisibility(boolean enabled) {
++        setVisibility(enabled ? View.VISIBLE : View.GONE);
++    }
++
++    @Override
++    public boolean onInterceptTouchEvent(MotionEvent ev) {
++        int action = ev.getActionMasked();
++        switch (action) {
++            case MotionEvent.ACTION_OUTSIDE:
++                if (mState == SIDEBAR_STATE.OPENED)
++                    showAppContainer(false);
++                break;
++            case MotionEvent.ACTION_DOWN:
++                if (isKeyguardEnabled())
++                    return false;
++                if (ev.getX() <= mTriggerWidth && mState == SIDEBAR_STATE.CLOSED) {
++                    showAppContainer(true);
++                    cancelAutoHideTimer();
++                    mCircleListView.onTouchEvent(ev);
++                    mFirstTouch = true;
++                } else
++                    updateAutoHideTimer(AUTO_HIDE_DELAY);
++                break;
++            case MotionEvent.ACTION_MOVE:
++                cancelAutoHideTimer();
++                break;
++            case MotionEvent.ACTION_UP:
++            case MotionEvent.ACTION_CANCEL:
++                updateAutoHideTimer(AUTO_HIDE_DELAY);
++                if (mState != SIDEBAR_STATE.CLOSED)
++                    mState = SIDEBAR_STATE.OPENED;
++                if (mFirstTouch) {
++                    mFirstTouch = false;
++                    return true;
++                }
++                break;
++        }
++        return false;
++    }
++
++    @Override
++    public boolean onTouchEvent(MotionEvent ev) {
++        int action = ev.getActionMasked();
++        switch (action) {
++            case MotionEvent.ACTION_OUTSIDE:
++                if (mState == SIDEBAR_STATE.OPENED)
++                    showAppContainer(false);
++                return true;
++            case MotionEvent.ACTION_UP:
++            case MotionEvent.ACTION_CANCEL:
++                updateAutoHideTimer(AUTO_HIDE_DELAY);
++                break;
++            case MotionEvent.ACTION_MOVE:
++            default:
++                cancelAutoHideTimer();
++        }
++        return mCircleListView.onTouchEvent(ev);
++    }
++
++    @Override
++    public boolean dispatchKeyEventPreIme(KeyEvent event) {
++        if (event.getKeyCode() == KEYCODE_BACK && event.getAction() == ACTION_DOWN &&
++                mState == SIDEBAR_STATE.OPENED)
++            showAppContainer(false);
++        return super.dispatchKeyEventPreIme(event);
++    }
++
++    private int enableKeyEvents() {
++        return (0
++                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
++                | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
++                | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH);
++    }
++
++    private int disableKeyEvents() {
++        return (0
++                | WindowManager.LayoutParams.FLAG_TOUCHABLE_WHEN_WAKING
++                | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
++                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
++                | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
++                | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH);
++    }
++
++    private int getWindowHeight() {
++        Rect r = new Rect();
++        getWindowVisibleDisplayFrame(r);
++        return r.bottom - r.top;
++    }
++
++    private void expandFromRegion() {
++        WindowManager.LayoutParams params = (WindowManager.LayoutParams) getLayoutParams();
++        params.y = 0;
++        params.height = getWindowHeight();
++        params.width = LayoutParams.WRAP_CONTENT;
++        params.flags = enableKeyEvents();
++        mWM.updateViewLayout(this, params);
++    }
++
++    private void reduceToRegion() {
++        WindowManager.LayoutParams params = (WindowManager.LayoutParams) getLayoutParams();
++        params.y = 0;
++        params.height = (getWindowHeight() / 2);
++        params.width = mTriggerWidth;
++        params.flags = disableKeyEvents();
++        mWM.updateViewLayout(this, mLayoutParams);
++    }
++
++    private TranslateAnimation mSlideOut = new TranslateAnimation(
++            Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 1.0f,
++            Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 0.0f);
++
++    private TranslateAnimation mSlideIn = new TranslateAnimation(
++            Animation.RELATIVE_TO_PARENT, 1.0f, Animation.RELATIVE_TO_PARENT, 0.0f,
++            Animation.RELATIVE_TO_PARENT, 0.0f, Animation.RELATIVE_TO_PARENT, 0.0f);
++
++    private void createAnimatimations() {
++        mSlideIn.setDuration(300);
++        mSlideIn.setInterpolator(new DecelerateInterpolator());
++        mSlideIn.setFillAfter(true);
++        mSlideIn.setAnimationListener(mAnimListener);
++        mSlideOut.setDuration(300);
++        mSlideOut.setInterpolator(new DecelerateInterpolator());
++        mSlideOut.setFillAfter(true);
++        mSlideOut.setAnimationListener(mAnimListener);
++    }
++
++    private void showAppContainer(boolean show) {
++        mState = show ? SIDEBAR_STATE.OPENING : SIDEBAR_STATE.CLOSING;
++        if (show) {
++            mCircleListView.setVisibility(View.VISIBLE);
++            expandFromRegion();
++        } else {
++            if (mPopup != null) {
++                mPopup.dismiss();
++            }
++            cancelAutoHideTimer();
++        }
++        mCircleListView.startAnimation(show ? mSlideIn : mSlideOut);
++    }
++
++    private Animation.AnimationListener mAnimListener = new Animation.AnimationListener() {
++        @Override
++        public void onAnimationStart(Animation animation) {
++        }
++
++        @Override
++        public void onAnimationEnd(Animation animation) {
++            animation.cancel();
++            mCircleListView.clearAnimation();
++            switch (mState) {
++                case CLOSING:
++                    mState = SIDEBAR_STATE.CLOSED;
++                    mCircleListView.setVisibility(View.GONE);
++                    reduceToRegion();
++                    break;
++                case OPENING:
++                    mState = SIDEBAR_STATE.OPENED;
++                    mCircleListView.setVisibility(View.VISIBLE);
++                    break;
++            }
++        }
++
++        @Override
++        public void onAnimationRepeat(Animation animation) {
++        }
++    };
++
++    private boolean isKeyguardEnabled() {
++        KeyguardManager km = (KeyguardManager)mContext.getSystemService(Context.KEYGUARD_SERVICE);
++        return km.inKeyguardRestrictedInputMode();
++    }
++
++    public void updateAutoHideTimer(long delay) {
++        Context ctx = getContext();
++        AlarmManager am = (AlarmManager)ctx.getSystemService(Context.ALARM_SERVICE);
++        Intent i = new Intent(ACTION_HIDE_APP_CONTAINER);
++
++        PendingIntent pi = PendingIntent.getBroadcast(ctx, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
++        try {
++            am.cancel(pi);
++        } catch (Exception e) {
++        }
++        Calendar time = Calendar.getInstance();
++        time.setTimeInMillis(System.currentTimeMillis() + delay);
++        am.set(AlarmManager.RTC, time.getTimeInMillis(), pi);
++    }
++
++    public void cancelAutoHideTimer() {
++        Context ctx = getContext();
++        AlarmManager am = (AlarmManager)ctx.getSystemService(Context.ALARM_SERVICE);
++        Intent i = new Intent(ACTION_HIDE_APP_CONTAINER);
++
++        PendingIntent pi = PendingIntent.getBroadcast(ctx, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
++        try {
++            am.cancel(pi);
++        } catch (Exception e) {
++        }
++    }
++
++    private final BroadcastReceiver mAppChangeReceiver = new BroadcastReceiver() {
++        @Override
++        public void onReceive(Context context, Intent intent) {
++            String action = intent.getAction();
++            if (action.equals(Intent.ACTION_PACKAGE_ADDED)
++                    || action.equals(Intent.ACTION_PACKAGE_REMOVED)
++                    || action.equals(Intent.ACTION_PACKAGE_CHANGED)) {
++                if (mPackageAdapter != null) {
++                    mPackageAdapter.reloadApplications();
++                }
++            }
++        }
++    };
++
++    private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
++        @Override
++        public void onReceive(Context context, Intent intent) {
++            String action = intent.getAction();
++            if (action.equals(ACTION_HIDE_APP_CONTAINER)) {
++                showAppContainer(false);
++            } else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
++                showAppContainer(false);
++            } else if (action.equals(Intent.ACTION_ACTIVITY_LAUNCH_DETECTOR)) {
++                String packageName = intent.getStringExtra("packagename");
++                if (!mAppRunning.contains(packageName)) {
++                    mAppRunning.add(packageName);
++                }
++            } else if (action.equals(Intent.ACTION_ACTIVITY_END_DETECTOR)) {
++                String packageName = intent.getStringExtra("packagename");
++                if (!mAppRunning.isEmpty() && mAppRunning.contains(packageName)) {
++                    mAppRunning.remove(packageName);
++                } else if (!mAppOpening.isEmpty() && mAppOpening.contains(packageName)) {
++                    mAppRunning.remove(packageName);
++                }
++            }
++        }
++    };
++
++    private void launchApplication(String packageName, String className) {
++        if (!mAppOpening.contains(packageName)) {
++            mAppOpening.add(packageName);
++        }
++        updateAutoHideTimer(500);
++        ComponentName cn = new ComponentName(packageName, className);
++        Intent intent = Intent.makeMainActivity(cn);
++        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
++        mContext.startActivity(intent);
++    }
++
++    private void launchApplicationFromHistory(String packageName, String className) {
++        if (!mAppOpening.isEmpty() && mAppOpening.contains(packageName)) {
++            updateAutoHideTimer(500);
++            ComponentName cn = new ComponentName(packageName, className);
++            Intent intent = Intent.makeMainActivity(cn);
++            intent.setFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY
++                           | Intent.FLAG_ACTIVITY_NEW_TASK);
++            mContext.startActivity(intent);
++        } else {
++            updateAutoHideTimer(AUTO_HIDE_DELAY);
++        }
++    }
++
++    private void killApp(String packageName) {
++       final ActivityManager am = (ActivityManager) mContext
++                .getSystemService(Activity.ACTIVITY_SERVICE);
++       am.forceStopPackage(packageName);
++    }
++
++    public void onItemCentered(View v) {
++        if (v != null) {
++            final int position = (Integer) v.getTag(R.id.key_position);
++            final ResolveInfo info = (ResolveInfo) mPackageAdapter.getItem(position);
++            if (info != null) {
++                String packageName = info.activityInfo.packageName;
++                if (!mAppRunning.isEmpty() && mAppRunning.contains(packageName)) {
++                    launchApplicationFromHistory(info.activityInfo.packageName, info.activityInfo.name);
++                }
++            }
++        }
++    }
++
++    public boolean onItemTouchCenteredEvent(MotionEvent ev) {
++        int action = ev.getAction();
++        if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_UP) {
++            mFirstTouch = false;
++            if (mState != SIDEBAR_STATE.OPENED)
++                return false;
++        } else if (action == MotionEvent.ACTION_DOWN) {
++            cancelAutoHideTimer();
++        }
++        return true;
++    }
++
++    public void onClick(final View v, final BaseAdapter adapter) {
++
++        final int position = (Integer) v.getTag(R.id.key_position);
++        final ResolveInfo info = (ResolveInfo) adapter.getItem(position);
++
++        if (v.equals(mCircleListView.findViewAtCenter())) {
++            if (info != null) {
++                launchApplication(info.activityInfo.packageName, info.activityInfo.name);
++            }
++        } else {
++            mCircleListView.smoothScrollToView(v);
++        }
++    }
++
++    public void onLongClick(final View v, final BaseAdapter adapter) {
++
++        final int position = (Integer) v.getTag(R.id.key_position);
++        final ResolveInfo info = (ResolveInfo) adapter.getItem(position);
++        if (info != null) {
++            final PopupMenu popup = new PopupMenu(mContext, v);
++            mPopup = popup;
++            popup.getMenuInflater().inflate(R.menu.sidebar_popup_menu,
++                   popup.getMenu());
++            popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
++                public boolean onMenuItemClick(MenuItem item) {
++                    } else if (item.getItemId() == R.id.sidebar_inspect_item) {
++                        startApplicationDetailsActivity(info.activityInfo.packageName);
++                    } else if (item.getItemId() == R.id.sidebar_stop_item) {
++                        killApp(info.activityInfo.packageName);
++                    } else {
++                        return false;
++                    }
++                    return true;
++                }
++            });
++            popup.setOnDismissListener(new PopupMenu.OnDismissListener() {
++                public void onDismiss(PopupMenu menu) {
++                    mPopup = null;
++                }
++            });
++            popup.show();
++        }
++    }
++
++    private void startApplicationDetailsActivity(String packageName) {
++        updateAutoHideTimer(500);
++        Intent intent = new Intent(
++                Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts(
++                        "package", packageName, null));
++        intent.setComponent(intent.resolveActivity(mContext.getPackageManager()));
++        TaskStackBuilder.create(mContext)
++                .addNextIntentWithParentStack(intent).startActivities();
++        showAppContainer(false);
++    }
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/appcirclesidebar/CircleListView.java b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/CircleListView.java
+new file mode 100644
+index 0000000..d9fd4c3
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/CircleListView.java
+@@ -0,0 +1,201 @@
++package com.android.systemui.statusbar.appcirclesidebar;
++
++import android.content.Context;
++import android.util.AttributeSet;
++import android.view.MotionEvent;
++import android.view.View;
++import android.widget.AbsListView;
++import android.widget.AbsListView.OnScrollListener;
++import android.widget.ListView;
++import android.widget.TextView;
++
++import com.android.systemui.R;
++
++public class CircleListView extends ListView implements OnScrollListener {
++
++    private static final int DEFAULT_SCROLL_DURATION = 200;
++
++    public static final int DEFAULT_SELECTION = Integer.MAX_VALUE / 2;
++
++    private boolean mIsForceCentering;
++
++    private ViewModifier mViewModifier;
++
++    private final CenterRunnable mCenterRunnable = new CenterRunnable();
++    private int mScrollDuration = DEFAULT_SCROLL_DURATION;
++    private OnItemCenteredListener mOnItemCenteredListener;
++
++    public CircleListView(Context context, AttributeSet attrs) {
++        super(context, attrs);
++        super.setOnScrollListener(this);
++        setOverscrollFooter(null);
++        setOverscrollHeader(null);
++    }
++
++    @Override
++    protected void onLayout(boolean changed, int l, int t, int r, int b) {
++        super.onLayout(changed, l, t, r, b);
++        setSelection(DEFAULT_SELECTION);
++    }
++
++    @Override
++    protected void onScrollChanged(int l, int t, int oldl, int oldt) {
++        super.onScrollChanged(l, t, oldl, oldt);
++
++        if (mViewModifier != null) {
++
++            final int count = getChildCount();
++            for (int i = 0; i < count; ++i) {
++                View v = getChildAt(i);
++                mViewModifier.applyToView(v, this);
++            }
++        }
++    }
++
++    /**
++     * Sets the current {@link ViewModifier} for this list.
++     *
++     * @param modifier
++     *            implementation of the {@link ViewModifier} class
++     *
++     * @see ViewModifier
++     */
++    public void setViewModifier(ViewModifier modifier) {
++        mViewModifier = modifier;
++    }
++
++    /**
++     * Sets the smooth scroll duration.
++     *
++     * @param duration
++     *            the number of milliseconds the scrolling animation will take
++     */
++    public void setScrollDuration(int duration) {
++        mScrollDuration = duration;
++    }
++
++    /**
++     * Sets the listener object that will be notified when the list centers on an item.
++     *
++     * @param listener
++     *            the {@link OnItemCenteredListener} implementation
++     */
++    public void setOnItemCenteredListener(OnItemCenteredListener listener) {
++        mOnItemCenteredListener = listener;
++    }
++
++    /**
++     * Smoothly scrolls the {@link CircleListView} so the {@link View} v is in the middle.
++     *
++     * @param v
++     *            the {@link View} that should be in the center after the scroll
++     * @param scrollDuration
++     *            how long will the scroll take
++     */
++    public void smoothScrollToView(View v) {
++        final float y = v.getY() + v.getHeight() * 0.5f;
++        final float halfHeight = getHeight() * 0.5f;
++        final int distance = (int) (y - halfHeight);
++
++        smoothScrollBy(distance, mScrollDuration);
++    }
++
++    @Override
++    public void setOnScrollListener(OnScrollListener l) {
++        throw new UnsupportedOperationException();
++    }
++
++    public void onScrollStateChanged(AbsListView view, int scrollState) {
++        if (scrollState == SCROLL_STATE_IDLE) {
++
++            if (!mIsForceCentering) {
++                // Start centering the view
++                mIsForceCentering = true;
++                final View childView = findViewAtCenter();
++                if (childView != null) {
++                    if (mOnItemCenteredListener != null) {
++                        mOnItemCenteredListener.onItemCentered(childView);
++                    }
++                    mCenterRunnable.setView(childView);
++                    postOnAnimation(mCenterRunnable);
++                }
++            }
++        }
++    }
++
++    @Override
++    public boolean onTouchEvent(MotionEvent ev) {
++        removeCallbacks(mCenterRunnable);
++        mIsForceCentering = false;
++        if (mOnItemCenteredListener != null) {
++            if (!mOnItemCenteredListener.onItemTouchCenteredEvent(ev)) {
++                return false;
++            }
++        }
++        return super.onTouchEvent(ev);
++    }
++
++    public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
++
++    }
++
++    /**
++     * Finds a View located at the specified point.
++     *
++     * @param x
++     *            x-coordinate of the point
++     * @param y
++     *            y-coordinate of the point
++     * @return {@link View} located at (x, y) or <code>null</code> if not found
++     */
++    public View findViewAt(int x, int y) {
++        final int count = getChildCount();
++        for (int i = 0; i < count; ++i) {
++            final View v = getChildAt(i);
++            final int x0 = v.getLeft();
++            final int y0 = v.getTop();
++            final int x1 = v.getWidth() - x0;
++            final int y1 = v.getHeight() + y0;
++
++            if (x >= x0 && x <= x1 && y >= y0 && y <= y1) {
++                return v;
++            }
++        }
++
++        return null;
++    }
++
++    /**
++     * Finds a {@link View} located in the center of the {@link CircleListView}.
++     *
++     * @return the {@link View} at the center of the {@link CircleListView}
++     */
++    public View findViewAtCenter() {
++        return findViewAt(0, getHeight() / 2);
++    }
++
++    public class CenterRunnable implements Runnable {
++
++        private View mView;
++
++        public void setView(View v) {
++            mView = v;
++        }
++
++        public void run() {
++            smoothScrollToView(mView);
++
++            mIsForceCentering = true;
++        }
++    }
++
++    /**
++     * Handles the event occurring when the list centers on an item.
++     *
++     * @see CircleListView#setOnItemCenteredListener(OnItemCenteredListener)
++     */
++    public interface OnItemCenteredListener {
++        public void onItemCentered(View v);
++        public boolean onItemTouchCenteredEvent(MotionEvent ev);
++    }
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/appcirclesidebar/CircularViewModifier.java b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/CircularViewModifier.java
+new file mode 100644
+index 0000000..7d3df18
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/CircularViewModifier.java
+@@ -0,0 +1,33 @@
++package com.android.systemui.statusbar.appcirclesidebar;
++
++import android.util.FloatMath;
++import android.view.View;
++import android.widget.AbsListView;
++import android.widget.ListView;
++
++import com.android.systemui.R;
++
++public class CircularViewModifier extends ViewModifier {
++
++    private static final int CIRCLE_OFFSET = 500;
++    private static final float DEGTORAD = 1.0f / 180.0f * (float) Math.PI;
++    private static final float SCALING_RATIO = 0.001f;
++    private static final float TRANSLATION_RATIO = 0.09f;
++
++    @Override
++    void applyToView(final View v, final AbsListView parent) {
++        final float halfHeight = v.getHeight() * 0.5f;
++        final float parentHalfHeight = parent.getHeight() * 0.5f;
++        final float y = v.getY();
++        final float rot = parentHalfHeight - halfHeight - y;
++
++        v.setPivotX(0.0f);
++        v.setPivotY(halfHeight);
++        v.setRotation(rot * 0.05f);
++        v.setTranslationX((-FloatMath.cos(rot * TRANSLATION_RATIO * DEGTORAD) + 1) * CIRCLE_OFFSET);
++
++        final float scale = 1.0f - Math.abs(parentHalfHeight - halfHeight - y) * SCALING_RATIO;
++        v.setScaleX(scale);
++        v.setScaleY(scale);
++    }
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/appcirclesidebar/InputItemHandler.java b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/InputItemHandler.java
+new file mode 100644
+index 0000000..7787290
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/InputItemHandler.java
+@@ -0,0 +1,39 @@
++package com.android.systemui.statusbar.appcirclesidebar;
++
++import android.content.Context;
++import android.view.View;
++import android.view.View.OnClickListener;
++import android.view.View.OnLongClickListener;
++
++public class InputItemHandler {
++    private final Context mContext;
++
++    public InputItemHandler(Context context) {
++        mContext = context;
++    }
++
++    public void registerInputHandler(View view, final InputHandleListener handler) {
++        registerClickListener(view, handler);
++    }
++
++    private void registerClickListener(final View view, final InputHandleListener handler) {
++        view.setOnClickListener(new OnClickListener() {
++
++            public void onClick(View v) {
++                handler.handleOnClickEvent(v);
++            }
++        });
++        view.setOnLongClickListener(new OnLongClickListener() {
++
++            public boolean onLongClick(View v) {
++                handler.handleOnLongClickEvent(v);
++                return true;
++            }
++        });
++    }
++
++    public interface InputHandleListener {
++        void handleOnClickEvent(View v);
++        void handleOnLongClickEvent(View v);
++    }
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/appcirclesidebar/PackageAdapter.java b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/PackageAdapter.java
+new file mode 100644
+index 0000000..2df2f25
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/PackageAdapter.java
+@@ -0,0 +1,206 @@
++package com.android.systemui.statusbar.appcirclesidebar;
++
++import android.content.Context;
++import android.content.Intent;
++import android.content.pm.PackageManager;
++import android.content.pm.ResolveInfo;
++import android.text.TextUtils;
++import android.view.LayoutInflater;
++import android.view.View;
++import android.view.View.OnClickListener;
++import android.view.ViewGroup;
++import android.widget.Adapter;
++import android.widget.BaseAdapter;
++import android.widget.ImageView;
++import android.widget.ListView;
++import android.widget.TextView;
++
++import com.android.systemui.R;
++
++import java.util.ArrayList;
++import java.util.Arrays;
++import java.util.Collections;
++import java.util.HashSet;
++import java.util.List;
++import java.util.Set;
++
++public class PackageAdapter extends BaseAdapter implements InputItemHandler.InputHandleListener {
++
++    private final Context mContext;
++    private List<ResolveInfo> mApplications;
++    private final LayoutInflater mInflater;
++    private final PackageManager mPackageManager;
++    private OnCircleItemClickListener mOnCircleItemClickListener;
++    private Set<String> mIncludedApps = new HashSet<String>();
++
++    private final InputItemHandler mInputItemHandler;
++
++    private static final String[] AUTO_ADD_PACKAGES = new String[] {
++        "com.android.settings",
++        "com.android.phone",
++        "com.android.mms",
++        "com.android.dialer",
++        "org.omnirom.omniswitch",
++        "com.android.browser",
++        "com.android.camera2",
++        "com.andrew.apollo",
++        "net.nurik.roman.dashclock",
++        "com.android.contacts"
++    };
++
++    public PackageAdapter(final Context ctx) {
++        mContext = ctx;
++
++        mInflater = (LayoutInflater) mContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
++        mPackageManager = mContext.getPackageManager();
++
++        mInputItemHandler = new InputItemHandler(ctx);
++
++        mApplications = new ArrayList<ResolveInfo>();
++    }
++
++    /**
++     * Reloads the application list and calls {@link #notifyDataSetChanged()} on this {@link Adapter}.
++     */
++    public void reloadApplications() {
++        final Intent intent = new Intent(Intent.ACTION_MAIN);
++        intent.addCategory(Intent.CATEGORY_LAUNCHER);
++
++        mApplications = mPackageManager.queryIntentActivities(intent, PackageManager.GET_META_DATA);
++
++        ArrayList<ResolveInfo> whiteListedApplications = new ArrayList<ResolveInfo>();
++        for (ResolveInfo info : mApplications) {
++            if (!isIncludeApp(info.activityInfo.packageName)) {
++                // Remove this app from the list
++                whiteListedApplications.add(info);
++            }
++        }
++        mApplications.removeAll(whiteListedApplications);
++
++        Collections.sort(mApplications, new ResolveInfo.DisplayNameComparator(mPackageManager));
++
++        notifyDataSetChanged();
++    }
++
++    /**
++     * Since we want to loop our list we return {@link Integer#MAX_VALUE}.
++     *
++     * {@inheritDoc}
++     */
++    public int getCount() {
++        return Integer.MAX_VALUE;
++    }
++
++    /**
++     * Retrieves an item in a position from the range (0; {@link Integer#MAX_VALUE}).
++     *
++     * {@inheritDoc}
++     */
++    public Object getItem(final int position) {
++        if (mApplications.size() > 0) {
++            return mApplications.get(position % mApplications.size());
++        }
++
++        return null;
++    }
++
++    public long getItemId(final int position) {
++        final ResolveInfo info = ((ResolveInfo) getItem(position));
++
++        if (info == null) {
++            return 0l;
++        } else {
++            return info.activityInfo.applicationInfo.uid;
++        }
++    }
++
++    public View getView(final int position, final View convertView, final ViewGroup parent) {
++
++        ViewHolder holder;
++
++        View v = convertView;
++        if (v == null) {
++
++            v = mInflater.inflate(R.layout.circle_list_item, null);
++
++            mInputItemHandler.registerInputHandler(v, this);
++
++            holder = new ViewHolder();
++            holder.mIcon = (ImageView) v.findViewById(R.id.icon);
++            holder.mAppName = (TextView) v.findViewById(R.id.label_app_name);
++
++            v.setTag(holder);
++        } else {
++            holder = (ViewHolder) v.getTag();
++        }
++
++        // We use those tags to have the access to parent and position in listeners.
++
++        v.setTag(R.id.key_parent, parent);
++        v.setTag(R.id.key_position, position);
++
++        final ResolveInfo resolveInfo = (ResolveInfo) getItem(position);
++        if (resolveInfo != null) {
++            holder.mIcon.setImageDrawable(resolveInfo.loadIcon(mPackageManager));
++            holder.mAppName.setText(resolveInfo.loadLabel(mPackageManager));
++        } else {
++            holder.mIcon.setImageDrawable(null);
++            holder.mAppName.setText(null);
++        }
++
++        return v;
++    }
++
++    private class ViewHolder {
++        ImageView mIcon;
++        TextView mAppName;
++    }
++
++    public void setOnCircleItemClickListener(final OnCircleItemClickListener listener) {
++        mOnCircleItemClickListener = listener;
++    }
++
++    public interface OnCircleItemClickListener {
++        void onClick(View v, BaseAdapter adapter);
++        void onLongClick(View v, BaseAdapter adapter);
++    }
++
++    public void handleOnClickEvent(View v) {
++        if (mOnCircleItemClickListener != null) {
++            mOnCircleItemClickListener.onClick(v, PackageAdapter.this);
++        }
++    }
++
++    public void handleOnLongClickEvent(View v) {
++        if (mOnCircleItemClickListener != null) {
++            mOnCircleItemClickListener.onLongClick(v, PackageAdapter.this);
++        }
++    }
++
++    private boolean isIncludeApp(String packageName) {
++        if (mIncludedApps != null) {
++            return mIncludedApps.contains(packageName);
++        }
++        return isAutoAddApp(packageName);
++    }
++
++    public void createIncludedAppsSet(String includedApps) {
++        if (TextUtils.isEmpty(includedApps)) {
++            mIncludedApps = null;
++            return;
++        }
++        String[] appsToInclude = includedApps.split("\\|");
++        mIncludedApps = new HashSet<String>(Arrays.asList(appsToInclude));
++    }
++
++    private boolean isAutoAddApp(String getPackageName) {
++        boolean showingApp = false;
++        for (String packageName : AUTO_ADD_PACKAGES) {
++             if (packageName.equals(getPackageName)) {
++                 showingApp = true;
++                 break;
++             }
++        }
++        return showingApp;
++    }
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/appcirclesidebar/ViewModifier.java b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/ViewModifier.java
+new file mode 100644
+index 0000000..3d8427a
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/appcirclesidebar/ViewModifier.java
+@@ -0,0 +1,8 @@
++package com.android.systemui.statusbar.appcirclesidebar;
++
++import android.view.View;
++import android.widget.AbsListView;
++
++public abstract class ViewModifier {
++    abstract void applyToView(View v, AbsListView parent);
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/BaseStatusBar.java b/packages/SystemUI/src/com/android/systemui/statusbar/BaseStatusBar.java
+index aa6effc..d89e19c 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/BaseStatusBar.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/BaseStatusBar.java
+@@ -109,6 +109,7 @@ import com.android.systemui.statusbar.notification.NotificationHelper;
+ import com.android.systemui.statusbar.halo.Halo;
+ import com.android.systemui.statusbar.policy.NotificationRowLayout;
+ import com.android.systemui.statusbar.policy.PieController;
++import com.android.systemui.statusbar.appcirclesidebar.AppCircleSidebar;
+ 
+ import com.android.internal.util.cm.DevUtils;
+ import com.android.internal.util.pac.TaskUtils;
+@@ -275,6 +276,8 @@ public abstract class BaseStatusBar extends SystemUI implements
+ 
+     private int mExpandedDesktopStyle = 0;
+ 
++    protected AppCircleSidebar mAppCircleSidebar;
++
+     private boolean mSlimRecentsEnabled;
+ 
+     public INotificationManager getNotificationManager() {
+@@ -1958,4 +1961,39 @@ public abstract class BaseStatusBar extends SystemUI implements
+             mPieController.restorePieTriggerMask();
+         }
+     }
++
++    protected void addAppCircleSidebar() {
++        if (mAppCircleSidebar == null) {
++            mAppCircleSidebar = (AppCircleSidebar) View.inflate(mContext, R.layout.app_circle_sidebar, null);
++            mWindowManager.addView(mAppCircleSidebar, getAppCircleSidebarLayoutParams());
++        }
++    }
++
++    protected void removeAppCircleSidebar() {
++        if (mAppCircleSidebar != null) {
++            mWindowManager.removeView(mAppCircleSidebar);
++        }
++    }
++
++    protected WindowManager.LayoutParams getAppCircleSidebarLayoutParams() {
++        int maxWidth =
++                mContext.getResources().getDimensionPixelSize(R.dimen.app_sidebar_trigger_width);
++
++        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
++                maxWidth,
++                ViewGroup.LayoutParams.MATCH_PARENT,
++                WindowManager.LayoutParams.TYPE_STATUS_BAR_SUB_PANEL,
++                0
++                | WindowManager.LayoutParams.FLAG_TOUCHABLE_WHEN_WAKING
++                | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
++                | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
++                | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
++                | WindowManager.LayoutParams.FLAG_SPLIT_TOUCH,
++                PixelFormat.TRANSLUCENT);
++        lp.privateFlags |= WindowManager.LayoutParams.PRIVATE_FLAG_NO_MOVE_ANIMATION;
++        lp.gravity = Gravity.TOP | Gravity.RIGHT;
++        lp.setTitle("AppCircleSidebar");
++
++        return lp;
++    }
+ }
+diff --git a/packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBar.java b/packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBar.java
+index 0316986..709252c 100644
+--- a/packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBar.java
++++ b/packages/SystemUI/src/com/android/systemui/statusbar/phone/PhoneStatusBar.java
+@@ -886,6 +886,8 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
+             // no window manager? good luck with that
+         } */
+ 
++            addAppCircleSidebar();
++
+         // Setup pie container if enabled
+         attachPieContainer(isPieEnabled());
+ 
+-- 
+1.7.9.5
+
