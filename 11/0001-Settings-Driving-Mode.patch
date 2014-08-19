@@ -1,14 +1,15 @@
-From a6643db108ed5b0e50bb0e45f1e0b7b77f418e22 Mon Sep 17 00:00:00 2001
+﻿From 2c5d61e883efb3e5f74dfa221747a1f724682f04 Mon Sep 17 00:00:00 2001
 From: Yanuar Harry <ai.the.smarties.physics@gmail.com>
-Date: Sun, 17 Aug 2014 12:02:11 +0200
+Date: Tue, 19 Aug 2014 11:16:50 +0200
 Subject: [PATCH] Driving Mode
 
-Change-Id: I6cd48b1502af2afc16bddd8f8b71cf4b823df0e2
+Change-Id: I65897d20b5e122f57a0331ef7f12a180e54f310f
 ---
  AndroidManifest.xml                                |   17 +
  res/drawable-hdpi/ic_settings_driving.png          |  Bin 0 -> 1445 bytes
  res/drawable-xhdpi/ic_settings_driving.png         |  Bin 0 -> 1867 bytes
  res/drawable-xxhdpi/ic_settings_driving.png        |  Bin 0 -> 2824 bytes
+ res/values-de/cm_strings.xml                       |   84 ++
  res/values/donottranslate.xml                      |    4 +
  res/values/pac_arrays.xml                          |   27 +
  res/values/pac_attrs.xml                           |    1 +
@@ -20,7 +21,7 @@ Change-Id: I6cd48b1502af2afc16bddd8f8b71cf4b823df0e2
  src/com/android/settings/tts/IntentReceiver.java   |   69 ++
  src/com/android/settings/tts/NotifyService.java    |  845 ++++++++++++++++++++
  .../android/settings/tts/TextToSpeechSettings.java |    8 +-
- 15 files changed, 1581 insertions(+), 1 deletion(-)
+ 16 files changed, 1665 insertions(+), 1 deletion(-)
  create mode 100644 res/drawable-hdpi/ic_settings_driving.png
  create mode 100644 res/drawable-xhdpi/ic_settings_driving.png
  create mode 100644 res/drawable-xxhdpi/ic_settings_driving.png
@@ -30,7 +31,7 @@ Change-Id: I6cd48b1502af2afc16bddd8f8b71cf4b823df0e2
  create mode 100644 src/com/android/settings/tts/NotifyService.java
 
 diff --git a/AndroidManifest.xml b/AndroidManifest.xml
-index 6c488a2..f863d4b 100644
+index 21c09a6..22fa5e5 100644
 --- a/AndroidManifest.xml
 +++ b/AndroidManifest.xml
 @@ -73,6 +73,8 @@
@@ -42,7 +43,7 @@ index 6c488a2..f863d4b 100644
  
      <permission
          android:name="android.permission.REQUEST_SUPERUSER"
-@@ -2201,6 +2203,21 @@
+@@ -2202,6 +2204,21 @@
              </intent-filter>
          </receiver>
  
@@ -211,6 +212,99 @@ ag#QBKufz5auDQ$r0000<MNUMnLSTZVxJB0h
 literal 0
 HcmV?d00001
 
+diff --git a/res/values-de/cm_strings.xml b/res/values-de/cm_strings.xml
+index 9363ce4..5f45c6b 100644
+--- a/res/values-de/cm_strings.xml
++++ b/res/values-de/cm_strings.xml
+@@ -916,4 +916,88 @@ auf <xliff:g id="new" example="libart.so">%2$s</xliff:g> zu ändern?</string>
+   <string name="enable_adb_summary_cm">ADB-Protokoll für Debugging über USB oder Netzwerk aktivieren</string>
+   <string name="block_notifications_title">Benachrichtigungen filtern</string>
+   <string name="no_filters_title">Keine Filter aktiv</string>
++  <!-- Driving mode -->
++  <!-- require add space in the end of string -->
++  <string name="voice_tts_new_call">Eingehender Anruf von </string>
++  <!-- require add space in the end of string -->
++  <string name="voice_tts_new_sms">Neue Textnachricht von </string>
++  <!-- require add space in the end of string -->
++  <string name="voice_tts_new_notif">Neues Ereignis von </string>
++  <string name="voice_tts_title">Driving Mode</string>
++
++  <string name="tts_settings_reset_message">Alle Einstellungen zurücksetzen?</string>
++  <string name="voice_tts_notification_title">Drive Mode einschalten</string>
++  <string name="voice_tts_notification_summary_on">Driving Mode</string>
++  <string name="voice_tts_notification_summary_off">Drive Mode ausschalten</string>
++  <string name="voice_tts_volume_title">Lautstärke</string>
++  <string name="voice_tts_volume_summary">Stelle Sprachlautstärke ein</string>
++  <string name="voice_tts_call_title">Eingehender Anruf</string>
++  <string name="voice_tts_call_summary">Sprache für eingehende Anrufe ein/ausschalten</string>
++  <string name="voice_tts_sms_title">Neue Nachricht</string>
++  <string name="voice_tts_sms_summary">Sprache für Nachrichten ein/ausschalten</string>
++  <string name="voice_tts_sms_read_title">Lese neue Nachricht</string>
++  <string name="voice_tts_sms_read_summary">Sprache für neue Nachrichten ein/ausschalten</string>
++  <string name="voice_tts_charge_full_title">Akkuanzeige</string>
++  <string name="voice_tts_charge_full_summary">Sprache wenn Akku voll ein/ausschalten</string>
++  <string name="voice_tts_charge_on_title">Ladegerät angeschlossen</string>
++  <string name="voice_tts_charge_on_summary">Sprache für angeschlossenes Ladegerät ein/ausschalten</string>
++  <string name="voice_tts_charge_off_title">Ladegerät ausgesteckt</string>
++  <string name="voice_tts_charge_off_summary">Sprache für abgestecktes Ladegerät ein/ausschalten</string>
++  <string name="voice_tts_clock_title">Uhr</string>
++  <string name="voice_tts_clock_summary">Sprache für Uhr ein/ausschalten wenn Display eingeschaltet wird</string>
++  <string name="voice_tts_date_title">Datum</string>
++  <string name="voice_tts_date_summary">Sprache für Datum ein/ausschalten wenn Display eingeschaltet wird</string>
++  <string name="voice_tts_notif_title">Ereignis</string>
++  <string name="voice_tts_notif_summary">Sprache für Ereignis ein/ausschalten</string>
++  <string name="voice_tts_notif_read_title">Lese neues Ereignis</string>
++  <string name="voice_tts_notif_read_summary">Sprache für ein neues Ereignis ein/ausschalten</string>
++  <string name="voice_tts_whitelist_title">enthaltene Apps</string>
++  <string name="voice_tts_whitelist_summary">Welche Apps sind erlaubt was vorgelesen werden können</string>
++  <string name="voice_tts_music_title">Musik Titel</string>
++  <string name="voice_tts_music_summary">Sprache für Liedtitel ein/ausschalten</string>
++  <string name="voice_tts_annoy_notif_title">Begrenzung der Sprachbenachrichtigung</string>
++  <string name="voice_tts_annoy_notif_summary">Begrenzung der Sprachbenachrichtigung jeder App - nur einmal pro eingestellten Zeit spielen</string>
++  <string name="voice_tts_annoy_notif_default">Standardverhalten</string>
++  <string name="voice_tts_annoy_notif_3s">3 Sekunden</string>
++  <string name="voice_tts_annoy_notif_5s">5 Sekunden</string>
++  <string name="voice_tts_annoy_notif_10s">10 Sekunden</string>
++  <string name="voice_tts_annoy_notif_15s">15 Sekunden</string>
++  <string name="voice_tts_annoy_notif_30s">30 Sekunden</string>
++  <string name="voice_tts_annoy_notif_45s">45 Sekunden</string>
++  <string name="voice_tts_annoy_notif_1m">1 Minute</string>
++  <string name="voice_tts_annoy_notif_2m">2 Minuten</string>
++  <string name="voice_tts_annoy_notif_5m">5 Minuten</string>
++  <string name="voice_tts_charge_full">Akku aufgeladen</string>
++  <string name="voice_tts_charge_on">Laden beginnt</string>
++  <string name="voice_tts_charge_off">Laden gestoppt</string>
++  <string name="voice_tts_time">Es ist</string>
++  <string name="voice_tts_date">Wir haben den</string>
++  <string name="voice_tts_music">Nun spielt</string>
++  <string name="voice_tts_engine_started">Drive Mode gestartet</string>
++  <string name="unknown_tts">Unbekannt</string>
++  <string name="unknown_number_tts">Unbekannte Nummer</string>
++  <string name="time_one">Eins</string>
++  <string name="time_two">Zwei</string>
++  <string name="time_three">Drei</string>
++  <string name="time_four">Vier</string>
++  <string name="time_five">Fünf</string>
++  <string name="time_six">Sechs</string>
++  <string name="time_seven">Sieben</string>
++  <string name="time_eight">Acht</string>
++  <string name="time_nine">Neun</string>
++  <string name="time_ten">Zehn</string>
++  <string name="time_eleven">Elf</string>
++  <string name="time_twelve">Zwölf</string>
++  <string name="time_oclock">Uhr</string>
++  <string name="time_five_past">Fünf nach</string>
++  <string name="time_ten_past">Zehn nach</string>
++  <string name="time_quarter_past">Viertel nach</string>
++  <string name="time_twenty_past">Zwanzig nach</string>
++  <string name="time_twenty_five_past">Fünfundzwanzig nach</string>
++  <string name="time_half_past">Halb</string>
++  <string name="time_twenty_five_to">Fünfundzwanzig vor</string>
++  <string name="time_twenty_to">Zwanzig vor</string>
++  <string name="time_quarter_to">Viertel vor</string>
++  <string name="time_ten_to">Zehn vor</string>
++  <string name="time_five_to">Fünf vor</string>
+ </resources>
 diff --git a/res/values/donottranslate.xml b/res/values/donottranslate.xml
 index e6bd9a6..540420b 100644
 --- a/res/values/donottranslate.xml
@@ -273,10 +367,10 @@ index b6a28c6..fd0ed5e 100644
  
  </resources>
 diff --git a/res/values/pac_strings.xml b/res/values/pac_strings.xml
-index 2b41e88..883bdab 100644
+index 57aab91..3898bd6 100644
 --- a/res/values/pac_strings.xml
 +++ b/res/values/pac_strings.xml
-@@ -666,4 +666,89 @@
+@@ -667,4 +667,89 @@
      <string name="app_circle_bar_included_apps_summary">Apps will show in app circle sidebar</string>
      <string name="title_tile_appcirclebar">App Circle Bar</string>
  
@@ -288,7 +382,7 @@ index 2b41e88..883bdab 100644
 +    <!-- require add space in the end of string -->
 +    <string name="voice_tts_new_notif">New notification from </string>
 +    <string name="voice_tts_title">Driving Mode</string>
-+    <string name="voice_tts_summary">Enable Driving mode then choose what you want to speak while driving</string>
++
 +    <string name="tts_settings_reset_message">Reset all settings to default?</string>
 +    <string name="voice_tts_notification_title">Drive mode</string>
 +    <string name="voice_tts_notification_summary_on">Enable driving mode</string>
@@ -367,10 +461,10 @@ index 2b41e88..883bdab 100644
 +
  </resources>
 diff --git a/res/xml/pac_ui_settings.xml b/res/xml/pac_ui_settings.xml
-index d668f68..2073172 100644
+index 901c76e..9ac9c6e 100644
 --- a/res/xml/pac_ui_settings.xml
 +++ b/res/xml/pac_ui_settings.xml
-@@ -67,4 +67,12 @@
+@@ -67,4 +67,11 @@
          android:fragment="com.android.settings.mahdi.omni.AppCircleSidebar" >
      </PreferenceScreen>
  
@@ -378,14 +472,13 @@ index d668f68..2073172 100644
 +        android:key="interface_voice_tts"
 +        android:icon="@drawable/ic_settings_driving"
 +        android:title="@string/voice_tts_title"
-+        android:summary="@string/voice_tts_summary"
 +        android:fragment="com.android.settings.pac.TtsNotification" >
 +    </PreferenceScreen>
 +
  </PreferenceScreen>
 diff --git a/res/xml/tts_notif_settings.xml b/res/xml/tts_notif_settings.xml
 new file mode 100644
-index 0000000..6d3724c
+index 0000000..4c05666
 --- /dev/null
 +++ b/res/xml/tts_notif_settings.xml
 @@ -0,0 +1,138 @@
@@ -529,7 +622,7 @@ index 0000000..6d3724c
 +</PreferenceScreen>
 diff --git a/src/com/android/settings/pac/TtsNotification.java b/src/com/android/settings/pac/TtsNotification.java
 new file mode 100644
-index 0000000..dba6ab8
+index 0000000..824bf77
 --- /dev/null
 +++ b/src/com/android/settings/pac/TtsNotification.java
 @@ -0,0 +1,376 @@

@@ -14,7 +14,7 @@ diff --git a/res/values/pac_strings.xml b/res/values/pac_strings.xml
 index 883bdab..dbccdb3 100644
 --- a/res/values/pac_strings.xml
 +++ b/res/values/pac_strings.xml
-@@ -751,4 +751,13 @@
+@@ -752,4 +752,13 @@
      <string name="time_ten_to">Ten till</string>
      <string name="time_five_to">Five till</string>
  
